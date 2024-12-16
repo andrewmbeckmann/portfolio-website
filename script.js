@@ -1,5 +1,7 @@
 var isLight = false; 
-let lastKeyTime = lastSwingTime = lastHurtTime = 0;
+let safetySwitch = false;
+let spamHits = 0;
+let lastKeyTime = lastSwingTime = lastHurtTime = lastSwitchHit = 0;
 let keyArray = [];
 let gameStarted = false;
 const code = "8045"
@@ -13,6 +15,8 @@ let playerX = playerY = hitsTaken = 0;
 let goingUp = goingDown = goingLeft = goingRight = false;
 
 document.getElementById("darklight").addEventListener("click", () => {
+    if (safetySwitch) return;
+    let currentSwitchHit = Date.now();
     let audio = new Audio('audio/switchsound.mp3');
     audio.play();
     if(!isLight) {
@@ -23,6 +27,16 @@ document.getElementById("darklight").addEventListener("click", () => {
         isLight = false;
         document.getElementById("body").classList.remove("light");
         document.getElementById("mypic").src="images/menoedit.jpg";
+    }
+    if(currentSwitchHit - lastSwitchHit < 400) spamHits++;
+    else spamHits = 0;
+    lastSwitchHit = currentSwitchHit;
+
+    if(spamHits >= 3) {
+        safetySwitch = true;
+        setTimeout(()=> {
+            safetySwitch = false;
+        }, 1000);
     }
 })
 
