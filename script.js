@@ -3,8 +3,8 @@ let lastKeyTime = lastSwingTime = 0;
 let keyArray = [];
 let gameStarted = false;
 const code = "8045"
-const swingCooldown = 2000;
-const frameTime = 1000;
+const swingCooldown = 500;
+const frameTime = 100;
 let movementIncrement = 3;
 let bugMovement = 2;
 let playerSize = 16;
@@ -28,7 +28,7 @@ window.addEventListener("keyup", e => {
     let key = e.key.toLowerCase();
     let currentKeyTime = Date.now();
 
-    if (key === "Escape" && gameStarted) endGame();
+    if (key === "escape" && gameStarted) endGame();
     if (gameStarted) {
         switch (key) {
             case "w":
@@ -45,7 +45,7 @@ window.addEventListener("keyup", e => {
                 break;
         }
     }
-    if (gameStarted && key === "space") {
+    if (gameStarted && key === "l") {
         e.preventDefault();
         swingSword();
     };
@@ -115,13 +115,26 @@ function createGame(){
         document.getElementById("body").prepend(elem.cloneNode(true))
     }
 
+    elem = document.createElement("img");
+    elem.setAttribute("src", "images/swordbase.png");
+    elem.setAttribute("id", "sword");
+    elem.setAttribute("height", playerSize.toString());
+    elem.setAttribute("width", playerSize.toString());
+    elem.style.position = "absolute";
+    elem.style.left = startingLeft + playerSize + "px";
+    elem.style.top = "300px";
+    elem.style.zIndex = "2";
+    document.getElementById("body").prepend(elem);
+
     runGame();
 }
 
 function endGame() {
     gameStarted = false;
     let elem = document.getElementById("player");
+    elem.remove();
     bugSpray();
+    elem = document.getElementById("sword");
     elem.remove();
 } 
 
@@ -146,6 +159,7 @@ function runGame(){
             if (goingDown) movePlayer(0, movementIncrement);
             if (goingLeft) movePlayer(-movementIncrement, 0);
             if (goingRight) movePlayer(movementIncrement, 0);
+            updateSwordPos();
             if (!gameStarted) clearInterval(gameTicks);
         }
 }
@@ -163,10 +177,55 @@ function adjustPlayerPos(){
     playerY = position.top;
 }
 
+function updateSwordPos(){
+    let elem = document.getElementById("sword");
+    if(goingRight){
+        elem.classList.remove(...elem.classList);
+        elem.classList.add("swordright");
+        elem.style.left = playerX+ playerSize + "px";
+        elem.style.top = playerY + "px";
+    } else if(goingLeft){
+        elem.classList.remove(...elem.classList);
+        elem.classList.add("swordleft");
+        elem.style.left = playerX - playerSize + "px";
+        elem.style.top = playerY + "px";
+    } else if(goingUp){
+        elem.classList.remove(...elem.classList);
+        elem.classList.add("swordup");
+        elem.style.left = playerX + "px";
+        elem.style.top = playerY - playerSize + "px";
+    } else if (goingDown){
+        elem.classList.remove(...elem.classList);
+        elem.classList.add("sworddown");
+        elem.style.left = playerX + "px";
+        elem.style.top = playerY + playerSize + "px";
+    } else {
+        elem.classList.remove(...elem.classList);
+        elem.classList.add("swordright");
+        elem.style.left = playerX + playerSize + "px";
+        elem.style.top = playerY + "px";
+    }
+
+}
+
 function swingSword(){
     let currentSwingTime = Date.now();
     if (currentSwingTime - lastSwingTime < swingCooldown) return;
-
+    let elem = document.getElementById("sword")
+    
+    elem.setAttribute("src", "images/swingframes/1.png")
+    setTimeout(() => {
+        elem.setAttribute("src", "images/swingframes/2.png")
+    }, frameTime)
+    setTimeout(() => {
+        elem.setAttribute("src", "images/swingframes/3.png")
+    }, frameTime*2)
+    setTimeout(() => {
+        elem.setAttribute("src", "images/swingframes/4.png")
+    }, frameTime*3)
+    setTimeout(() => {
+        elem.setAttribute("src", "images/swordbase.png")
+    }, frameTime*4)
 
     lastSwingTime = currentSwingTime;
 }

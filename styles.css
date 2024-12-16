@@ -311,6 +311,21 @@ nav div {
     }
 }
 
+.swordright {
+    transform: scaleX(-1);
+}
+
+.swordleft {
+    transform: none;
+}
+
+.swordup {
+    transform: rotate(90deg);
+}
+
+.sworddown {
+    transform: scaleX(-1) rotate(90deg);
+}
 
 /* 
 nav h6:after{
