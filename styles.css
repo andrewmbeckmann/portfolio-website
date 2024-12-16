@@ -253,6 +253,19 @@ nav div {
     font-size: x-large;
 }
 
+input {
+    background-color: var(--backgroundcolor);
+    color: var(--textcolor);
+    height: 30px;
+    font-size: large;
+    margin-bottom: 10px;
+}
+
+textarea {
+    background-color: var(--backgroundcolor);
+    color: var(--textcolor);
+}
+
 
 @media (max-width: 1000px) { 
     #darklight {
@@ -264,7 +277,12 @@ nav div {
     }
 
     body {
-        width: 100%;
+        width: 100vw;
+        margin: 0;
+    }
+
+    #hero {
+        margin-left: 0;
     }
 
     #hero img {
@@ -272,7 +290,12 @@ nav div {
     }
 
     #herotext {
-        width: 100%;
+        width: 100vw;
+        z-index: 3;
+    }
+
+    #herotext h3 {
+        margin-block-start: 0em;
     }
 
     #skills {
@@ -286,6 +309,10 @@ nav div {
         max-width: 100vw;
     }
 
+    #projects {
+        margin: auto;
+    }
+
     #projects div {
         align-items: center;
         flex-direction: column;
@@ -293,21 +320,33 @@ nav div {
     }
 
     #projects div img {
-        max-height: 200px;
+        /* max-height: 200px;
         height: 250px;
-        max-width: fit-content;
+        max-width: fit-content; */
+        display: block;
+        width: 90vw;
+        max-width: 90vw;
+        margin-bottom: 10px;
     }
 
     .projectdesc {
-        width: fit-content;
+        width: 80vw;
     }
 
     .projectlinks {
-        flex-direction: row;
+        flex-direction: row !important;
+    }
+
+    #contact input {
+        width: 69vw
     }
 
     textarea {
-        width: 350px
+        width: 70vw;
+    }
+
+    #contact {
+        margin-left: 0;
     }
 }
 
