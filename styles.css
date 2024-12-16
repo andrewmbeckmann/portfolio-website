@@ -359,31 +359,9 @@ textarea {
 }
 
 .swordup {
-    transform: rotate(90deg);
-}
-
-.sworddown {
     transform: scaleX(-1) rotate(90deg);
 }
 
-/* 
-nav h6:after{
-    content: '';
-    position: inherit;
-    width: 100%;
-    transform: scaleX(0);
-    height: 2px;
-    bottom: 0;
-    left: 0;
-    background-color: #0087ca;
-    transition: transform 0.25s ease-out;
+.sworddown {
+    transform: scaleX(-1) rotate(270deg);
 }
-
-nav h6:hover::after{
-    transform: scaleX(1.0);
-    transform-origin: bottom center;
-} */
-
-
-    /* --backgroundcolor: #0B192C; */
-    /* --undertextcolor: #1E3E62; */

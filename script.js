@@ -140,6 +140,7 @@ function endGame() {
     bugSpray();
     elem = document.getElementById("sword");
     elem.remove();
+    goingUp = goingDown = goingLeft = goingRight = false;
 } 
 
 function bugSpray() { //needed more iterations, potential bug with movement interfering w/deletion
