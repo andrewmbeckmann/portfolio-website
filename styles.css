@@ -266,6 +266,13 @@ textarea {
     color: var(--textcolor);
 }
 
+button{
+    background: none;
+}
+
+body.light button{
+    border: none; /*better aesthetics, considering different solution*/
+}
 
 @media (max-width: 1000px) { 
     #darklight {
