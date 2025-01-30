@@ -41,10 +41,29 @@ body {
 
 #hero img{
     width: 25em;
-    /* width: 33%; */
-    /* height: 22e  m; */
     overflow: hidden;
     border-radius: 4%;
+}
+
+.default {
+    transform: perspective(800px) rotateY(-20deg);
+    transition: transform 1s ease 0s;
+
+    &:hover {
+        transform: perspective(800px) rotateY(0deg);
+        cursor: pointer;
+    }
+}
+
+@keyframes yellow{
+    0% {filter: hue-rotate(0deg) brightness(1);}
+    100% {filter: hue-rotate(0deg) brightness(10);}
+}
+
+.yellow {
+    filter: hue-rotate(0deg) brightness(1);
+    animation-name: yellowtransition; 
+    animation-duration: 1.05s;
 }
 
 #socials {

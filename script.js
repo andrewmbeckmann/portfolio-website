@@ -3,16 +3,19 @@ let safetySwitch = false;
 let spamHits = 0;
 let lastKeyTime = lastSwingTime = lastHurtTime = lastSwitchHit = 0;
 let keyArray = [];
-let gameStarted = false;
+let gameStarted = computerClicked = false;
 const code = "8045"
 const swingCooldown = 500;
 const frameTime = 100;
+const blinkTime = 1000;
 const maxLives = 3;
 let movementIncrement = 3;
 let bugMovement = 2;
 let playerSize = 16;
 let playerX = playerY = hitsTaken = 0;
 let goingUp = goingDown = goingLeft = goingRight = false;
+
+animateHero();
 
 document.getElementById("darklight").addEventListener("click", () => {
     if (safetySwitch) return;
@@ -22,11 +25,9 @@ document.getElementById("darklight").addEventListener("click", () => {
     if(!isLight) {
         isLight = true;
         document.getElementById("body").classList.add("light");
-        document.getElementById("mypic").src="images/mesomeedit.png";
     } else {
         isLight = false;
         document.getElementById("body").classList.remove("light");
-        document.getElementById("mypic").src="images/menoedit.jpg";
     }
     if(currentSwitchHit - lastSwitchHit < 400) spamHits++;
     else spamHits = 0;
@@ -38,6 +39,12 @@ document.getElementById("darklight").addEventListener("click", () => {
             safetySwitch = false;
         }, 1000);
     }
+})
+
+document.getElementById("heropic").addEventListener("click", () => {
+    if (computerClicked) return;
+    computerClicked = true;
+    heroTransition();
 })
 
 window.addEventListener("keyup", e => {
@@ -73,7 +80,7 @@ window.addEventListener("keyup", e => {
     keyArray.push(key);
 
     if(keyArray.length > 4) keyArray = keyArray.slice(keyArray.length - 4);
-    if(keyArray.join('') === code && !gameStarted){
+    if(keyArray.join('') === code && !gameStarted){ //will add some goofy cheat code i think
         createGame();
     }
 
@@ -103,6 +110,54 @@ window.addEventListener("keydown", e =>{
         }
     }
 })
+
+function animateHero(){
+    let blink = false;
+    let animation = setInterval(heroBlink, blinkTime)
+        function heroBlink(){
+            if (computerClicked) {
+                clearInterval(animation);
+                return;
+            }
+            if(blink) {
+                document.getElementById("heropic").src = "images/computer/basecursor.png"
+                blink = false;
+            }
+            else {
+                document.getElementById("heropic").src = "images/computer/base.png"
+                blink = true;
+            }
+        }
+}
+
+function heroTransition(){
+    document.getElementById("heropic").classList.remove("default");
+    document.getElementById("heropic").classList.add("yellow");
+    let typeframes = 150
+    setTimeout(() => {
+        document.getElementById("heropic").src = "images/computer/bcsblink.png"
+    }, typeframes)
+    setTimeout(() => {
+        document.getElementById("heropic").src = "images/computer/bcstblink.png"
+    }, typeframes * 2)
+    setTimeout(() => {
+        document.getElementById("heropic").src = "images/computer/bcstablink.png"
+    }, typeframes * 3)
+    setTimeout(() => {
+        document.getElementById("heropic").src = "images/computer/bcstarblink.png"
+    }, typeframes * 4)
+    setTimeout(() => {
+        document.getElementById("heropic").src = "images/computer/bcstartblink.png"
+    }, typeframes * 5)
+    setTimeout(() => {
+        document.getElementById("heropic").src = "images/computer/bcstart.png"
+    }, typeframes * 6)
+    setTimeout(() => {
+        document.getElementById("heropic").src = "images/computer/basecursor.png"
+        document.getElementById("heropic").classList.remove("yellow");
+        createGame();
+    }, typeframes * 7)
+}
 
 function createGame(){
     gameStarted = true;
@@ -148,6 +203,9 @@ function createGame(){
 
 function endGame() {
     gameStarted = false;
+    computerClicked = false;
+    document.getElementById("heropic").classList.add("default");
+    animateHero(); //hero pic, not in-game hero :)
     hitsTaken = 0;
     let elem = document.getElementById("player");
     elem.remove();
