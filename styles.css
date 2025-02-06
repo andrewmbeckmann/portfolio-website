@@ -293,7 +293,11 @@ body.light button{
     border: none; /*better aesthetics, considering different solution*/
 }
 
-@media (max-width: 1000px) { 
+@media (max-width: 1200px) { 
+    html {
+        overflow-x: hidden;
+    }
+
     #darklight {
         display: none;
     }
@@ -373,6 +377,37 @@ body.light button{
 
     #contact {
         margin-left: 0;
+    }
+}
+
+@media (max-width: 500px) {    
+    html{
+        overflow-x: hidden !important;
+        /* position: fixed; */
+    } 
+
+    body {
+        overflow-x: hidden !important;
+        /* position: fixed; */
+    }
+
+    body *{
+        margin-left: 0;
+        margin-right: 0;
+    }
+
+    #projects div img{
+        width: 80vw;
+        max-width: 80vw;
+    }
+
+    #projects {
+        margin-left: 0;
+        margin-right: 0;
+    }
+    
+    #crazyemail {
+        flex-direction: column;
     }
 }
 
