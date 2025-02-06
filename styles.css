@@ -115,12 +115,10 @@ body.light .logo{
 
 #scrollicon {
     animation: 1s infinite alternate bounce;
-    /* position: absolute;
-    margin: 10vh auto 0 auto; */
     display: flex;
     justify-content: center;
     position: relative;
-    /* z-index: -1; */
+    transition: .5s;
 }
 
 #resume {
@@ -409,6 +407,25 @@ body.light button{
     #crazyemail {
         flex-direction: column;
     }
+}
+
+.splash {
+    height: 100vh;
+    z-index: 999;
+    width: 100vw;
+    background: black;
+    opacity: 0;
+    transition: 0.6s;
+    position: fixed;
+    top: 0;
+    left: 0;
+}
+
+.splashelem {
+    position: fixed;
+    image-rendering: pixelated;
+    opacity: 0;
+    z-index: 1000;
 }
 
 .swordright {

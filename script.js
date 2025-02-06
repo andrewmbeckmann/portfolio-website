@@ -14,6 +14,7 @@ let bugMovement = 2;
 let playerSize = 16;
 let playerX = playerY = hitsTaken = 0;
 let goingUp = goingDown = goingLeft = goingRight = false;
+let tutorialText = "Move your character with WASD. \n\n Attack with your L key. \n Go!"
 
 animateHero();
 
@@ -50,6 +51,8 @@ document.getElementById("heropic").addEventListener("click", () => {
 window.addEventListener("keyup", e => {
     let key = e.key.toLowerCase();
     let currentKeyTime = Date.now();
+
+    if (key === "z") tutorialSplash(); //test function
 
     if (key === "escape" && gameStarted) endGame();
     if (gameStarted) {
@@ -134,29 +137,88 @@ function heroTransition(){
     document.getElementById("heropic").classList.remove("default");
     document.getElementById("heropic").classList.add("yellow");
     let typeframes = 150
-    setTimeout(() => {
-        document.getElementById("heropic").src = "images/computer/bcsblink.png"
-    }, typeframes)
-    setTimeout(() => {
-        document.getElementById("heropic").src = "images/computer/bcstblink.png"
-    }, typeframes * 2)
-    setTimeout(() => {
-        document.getElementById("heropic").src = "images/computer/bcstablink.png"
-    }, typeframes * 3)
-    setTimeout(() => {
-        document.getElementById("heropic").src = "images/computer/bcstarblink.png"
-    }, typeframes * 4)
-    setTimeout(() => {
-        document.getElementById("heropic").src = "images/computer/bcstartblink.png"
-    }, typeframes * 5)
-    setTimeout(() => {
-        document.getElementById("heropic").src = "images/computer/bcstart.png"
-    }, typeframes * 6)
+    let picFrames = ["sblink", "stblink", "stablink", "starblink", "startblink", "start"]
+    for(let i = 0; i < 6; i++) { //less chunky code
+        setTimeout(() => {
+            document.getElementById("heropic").src = "images/computer/bc" + picFrames[i] + ".png"
+        }, typeframes * (i + 1))
+    }
     setTimeout(() => {
         document.getElementById("heropic").src = "images/computer/basecursor.png"
         document.getElementById("heropic").classList.remove("yellow");
-        createGame();
+        tutorialSplash();
     }, typeframes * 7)
+}
+
+function tutorialSplash(){
+    document.documentElement.scrollTop = 0; 
+    document.documentElement.style.overflowY = "hidden"
+    elem = document.createElement("img");
+    elem2 = document.createElement("img");
+    let splash = document.createElement("div");
+    let splashtext = document.createElement("p");
+    let skiptext = document.createElement("img");
+    splash.classList.add("splash")
+    document.body.append(splash);
+    setTimeout(() => {
+        splash.style.opacity = "0.8";
+        elem.style.opacity = "1";
+        skiptext.style.opacity = ".6";
+        elem2.style.opacity = "1";
+    }, 50); //trying to avoid lag killing transitions
+
+    setTimeout(() => {
+        drySplash();
+    }, 10000);
+    
+    const spriteSize = (screen.availWidth/6)
+
+    elem.setAttribute("src", "images/swordbase.png");
+    elem.setAttribute("width", spriteSize.toString() + "px");
+    elem2.setAttribute("src", "images/computer.png");
+    elem2.setAttribute("width", spriteSize.toString() + "px");
+    skiptext.setAttribute("src", "images/skiptext.png");
+    skiptext.setAttribute("width", screen.availWidth*.44 + "px");
+    elem.classList.add("splashelem")
+    elem2.classList.add("splashelem")
+    skiptext.classList.add("splashelem")
+    elem.style.left = (spriteSize/2) + "px";
+    elem2.style.right = (spriteSize/2) + "px";
+    skiptext.style.marginLeft = "auto";
+    elem.style.top = screen.availHeight/4 + "px";
+    elem2.style.top = screen.availHeight/4 + "px";
+    skiptext.style.bottom = "50px";
+    
+    document.body.prepend(elem);
+    document.body.prepend(elem2);
+    document.body.prepend(skiptext);
+
+    function drySplash(){
+        if(gameStarted) return; //potential failure to remove keypress, investigate
+        document.removeEventListener("keypress", e => {
+            if (e.code = "Space") {
+                e.preventDefault();
+                drySplash();
+            }
+        });
+        setTimeout(() => {
+            splash.remove();
+        }, 600);
+        splash.style.opacity = "0"
+        elem.remove();
+        elem2.remove();
+        skiptext.remove();
+        createGame();
+        
+    }
+        
+    document.addEventListener("keypress", e => {
+        if (e.code = "Space") {
+            console.log();
+            e.preventDefault();
+            drySplash();
+        }
+    })
 }
 
 function createGame(){
@@ -202,6 +264,7 @@ function createGame(){
 }
 
 function endGame() {
+    document.documentElement.style.overflowY = "scroll"
     gameStarted = false;
     computerClicked = false;
     document.getElementById("heropic").classList.add("default");
