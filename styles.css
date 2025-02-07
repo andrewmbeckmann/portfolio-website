@@ -118,7 +118,7 @@ body.light .logo{
     display: flex;
     justify-content: center;
     position: relative;
-    transition: .5s;
+    transition: 3s;
 }
 
 #resume {
@@ -409,7 +409,7 @@ body.light button{
     }
 }
 
-.splash {
+#splash {
     height: 100vh;
     z-index: 999;
     width: 100vw;

@@ -3,7 +3,7 @@ let safetySwitch = false;
 let spamHits = 0;
 let lastKeyTime = lastSwingTime = lastHurtTime = lastSwitchHit = 0;
 let keyArray = [];
-let gameStarted = computerClicked = false;
+let gameStarted = computerClicked = splashed =  false;
 const code = "8045"
 const swingCooldown = 500;
 const frameTime = 100;
@@ -51,8 +51,6 @@ document.getElementById("heropic").addEventListener("click", () => {
 window.addEventListener("keyup", e => {
     let key = e.key.toLowerCase();
     let currentKeyTime = Date.now();
-
-    if (key === "z") tutorialSplash(); //test function
 
     if (key === "escape" && gameStarted) endGame();
     if (gameStarted) {
@@ -151,6 +149,8 @@ function heroTransition(){
 }
 
 function tutorialSplash(){
+    if(splashed) return;
+    splashed = true;
     document.documentElement.scrollTop = 0; 
     document.documentElement.style.overflowY = "hidden"
     elem = document.createElement("img");
@@ -158,17 +158,19 @@ function tutorialSplash(){
     let splash = document.createElement("div");
     let splashtext = document.createElement("p");
     let skiptext = document.createElement("img");
-    splash.classList.add("splash")
+    splash.id = "splash";
     document.body.append(splash);
     setTimeout(() => {
         splash.style.opacity = "0.8";
         elem.style.opacity = "1";
         skiptext.style.opacity = ".6";
         elem2.style.opacity = "1";
+        document.getElementById("scrollicon").style.animation = "5s infinite alternate bounce"
+        document.getElementById("scrollicon").style.opacity = "0"
     }, 50); //trying to avoid lag killing transitions
 
-    setTimeout(() => {
-        drySplash();
+    let autoPlay = setTimeout(() => {
+        if (!gamestarted) drySplash();
     }, 10000);
     
     const spriteSize = (screen.availWidth/6)
@@ -196,24 +198,23 @@ function tutorialSplash(){
     function drySplash(){
         if(gameStarted) return; //potential failure to remove keypress, investigate
         document.removeEventListener("keypress", e => {
-            if (e.code = "Space") {
+            if (e.code == "Space") {
                 e.preventDefault();
                 drySplash();
             }
         });
-        setTimeout(() => {
-            splash.remove();
-        }, 600);
-        splash.style.opacity = "0"
+        splash.style.opacity = "0.6"
         elem.remove();
         elem2.remove();
         skiptext.remove();
+        clearTimeout(autoPlay);
         createGame();
         
     }
         
     document.addEventListener("keypress", e => {
-        if (e.code = "Space") {
+        if(gameStarted) return;
+        if (e.code == "Space") {
             console.log();
             e.preventDefault();
             drySplash();
@@ -233,7 +234,7 @@ function createGame(){
     let startingLeft = window.innerWidth / 2;
     elem.style.left = startingLeft + "px";
     elem.style.top = "300px";
-    elem.style.zIndex = "2";
+    elem.style.zIndex = "1001";
     document.getElementById("body").prepend(elem);
 
     elem = document.createElement("img");
@@ -243,6 +244,7 @@ function createGame(){
         elem.classList.add("bug");
         elem.style.left = 100*i + "px";
         elem.style.top = "200px";
+        elem.style.zIndex = "1001"; 
         let bugSize = playerSize + Math.trunc(Math.random() * (playerSize/2))
         elem.setAttribute("height", bugSize);
         elem.setAttribute("width", bugSize);
@@ -257,25 +259,33 @@ function createGame(){
     elem.style.position = "absolute";
     elem.style.left = startingLeft + playerSize + "px";
     elem.style.top = "300px";
-    elem.style.zIndex = "2";
+    elem.style.zIndex = "1001";
     document.getElementById("body").prepend(elem);
 
     runGame();
 }
 
 function endGame() {
+    gameStarted = computerClicked = splashed = false;
+    splash = document.getElementById("splash")
+    setTimeout(() => {
+        splash.remove();
+    }, 600);
+    splash.style.opacity = "0"
+    document.getElementById("scrollicon").style.opacity = "1"
+    document.getElementById("scrollicon").style.animation = "1s infinite alternate bounce"
     document.documentElement.style.overflowY = "scroll"
-    gameStarted = false;
-    computerClicked = false;
     document.getElementById("heropic").classList.add("default");
     animateHero(); //hero pic, not in-game hero :)
-    hitsTaken = 0;
     let elem = document.getElementById("player");
     elem.remove();
     bugSpray();
     elem = document.getElementById("sword");
     elem.remove();
     goingUp = goingDown = goingLeft = goingRight = false;
+    setTimeout(() => {
+        hitsTaken = 0;
+    }, 1000)
 } 
 
 function bugSpray() { //needed more iterations, potential bug with movement interfering w/deletion
@@ -388,6 +398,7 @@ function checkSwordCollision(){
 function spawnNewBug(){
     elem = document.createElement("img");
     elem.style.position = "absolute";
+    elem.style.zIndex = "1001"; 
     elem.setAttribute("src", "images/bug.png");   
     elem.classList.add("bug");
     if(Math.random() < .5) { //top or bottom
