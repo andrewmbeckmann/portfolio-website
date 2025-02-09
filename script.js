@@ -158,24 +158,13 @@ function tutorialSplash(){
     let splash = document.createElement("div");
     let splashtext = document.createElement("p");
     let skiptext = document.createElement("img");
-    splash.id = "splash";
     document.body.append(splash);
-    setTimeout(() => {
-        splash.style.opacity = "0.8";
-        elem.style.opacity = "1";
-        skiptext.style.opacity = ".6";
-        elem2.style.opacity = "1";
-        document.getElementById("scrollicon").style.animation = "5s infinite alternate bounce"
-        document.getElementById("scrollicon").style.opacity = "0"
-    }, 50); //trying to avoid lag killing transitions
-
-    let autoPlay = setTimeout(() => {
-        if (!gamestarted) drySplash();
-    }, 10000);
+    splash.id = "splash";
     
     const spriteSize = (screen.availWidth/6)
 
     elem.setAttribute("src", "images/swordbase.png");
+    elem.id = "sword"
     elem.setAttribute("width", spriteSize.toString() + "px");
     elem2.setAttribute("src", "images/computer.png");
     elem2.setAttribute("width", spriteSize.toString() + "px");
@@ -184,8 +173,10 @@ function tutorialSplash(){
     elem.classList.add("splashelem")
     elem2.classList.add("splashelem")
     skiptext.classList.add("splashelem")
-    elem.style.left = (spriteSize/2) + "px";
-    elem2.style.right = (spriteSize/2) + "px";
+    splashtext.classList.add("splashelem")
+    elem.style.right = (spriteSize/1.5) + "px";
+    elem2.style.left = (spriteSize/1.5  ) + "px";
+    splashtext.style.left = (spriteSize/1.5  ) + "px";
     skiptext.style.marginLeft = "auto";
     elem.style.top = screen.availHeight/4 + "px";
     elem2.style.top = screen.availHeight/4 + "px";
@@ -194,6 +185,68 @@ function tutorialSplash(){
     document.body.prepend(elem);
     document.body.prepend(elem2);
     document.body.prepend(skiptext);
+
+    splashtext.setAttribute("maxwidth", (screen.availWidth - spriteSize) + "px")
+    splashtext.setAttribute("id", "splashtext")
+    splashtext.setAttribute("bottom", "100px")
+
+    function runSplashText(){
+        if(document.getElementById("splashtext")) return;
+        document.body.prepend(splashtext);
+        setTimeout(() => {
+            swingSword();
+        }, 5000);
+        let pauseCount = 0;
+        for(let i = 0; i < tutorialText.length; i++) {
+            setTimeout(() => {
+                jigglePlayer(i)
+            }, 1250 + i*500);
+            if (tutorialText.charAt(i).includes("\\")) pauseCount++;
+            setTimeout(() => {
+                splashtext.textContent = tutorialText.substring(0, i + 1);
+            }, i*100 + pauseCount *2000)
+        }
+    }
+    runSplashText();
+
+    function resetPlayer(){
+        elem2.style.left = (spriteSize/1.5 + 100) + "px"; //variables will soon be made
+        elem2.style.top = (screen.availHeight / 4) + "px";
+    }
+
+    function jigglePlayer(dirnum){
+        console.log(dirnum)
+        switch (dirnum) {
+            case 0:
+                elem2.style.top = (screen.availHeight / 4 - 20) +"px"
+                break;
+            case 1:
+                elem2.style.left = (spriteSize/1.5 + 20) + "px"
+                break;
+            case 2:
+                elem2.style.top = (screen.availHeight / 4 + 20) +"px"
+                break;
+            case 3:
+                elem2.style.left = (spriteSize/1.5 - 20) + "px"
+                break;  
+        }
+        // setTimeout(resetPlayer, 250)
+    }
+    
+    skiptext.id = "skiptext";
+    
+    setTimeout(() => {
+        splash.style.opacity = "0.8";
+        elem.style.opacity = "1";
+        skiptext.style.opacity = ".3";
+        elem2.style.opacity = "1";
+        document.getElementById("scrollicon").style.animation = "5s infinite alternate bounce"
+        document.getElementById("scrollicon").style.opacity = "0"
+    }, 50); //trying to avoid lag killing transitions
+
+    let autoPlay = setTimeout(() => {
+        // if (!gameStarted) drySplash();
+    }, 10000);
 
     function drySplash(){
         if(gameStarted) return; //potential failure to remove keypress, investigate
@@ -207,6 +260,7 @@ function tutorialSplash(){
         elem.remove();
         elem2.remove();
         skiptext.remove();
+        splashtext.remove();
         clearTimeout(autoPlay);
         createGame();
         

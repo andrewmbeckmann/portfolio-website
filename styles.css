@@ -409,6 +409,39 @@ body.light button{
     }
 }
 
+@keyframes slowblink {
+    from {opacity: 0.2;}
+    to {opacity: 0.4;}
+}
+
+#skiptext {
+    animation: 1s infinite alternate slowblink;
+}
+
+@keyframes flashcursor {
+    0% {opacity: 0;}
+    50% {opacity: 0;}
+    51% {opacity: 1;}
+    100% {opacity: 1;}
+}
+
+#splashtext{
+    font-family: "Pixelify Sans", serif;
+    font-optical-sizing: auto;
+    font-size: 50px;
+    bottom: 100px;
+    opacity: 1;
+}
+
+#splashtext::after{
+    content: "_";
+    font: large;
+    display: inline-block;
+    width: 50px;
+    height: 100px;
+    animation: .5s infinite alternate flashcursor;
+}
+
 #splash {
     height: 100vh;
     z-index: 999;
