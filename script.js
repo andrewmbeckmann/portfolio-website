@@ -14,7 +14,7 @@ let bugMovement = 2;
 let playerSize = 16;
 let playerX = playerY = hitsTaken = 0;
 let goingUp = goingDown = goingLeft = goingRight = false;
-let tutorialText = "Move your character with WASD. \n\n Attack with your L key. \n Go!"
+let tutorialText = "Move your character with WASD.  Attack with your L key.  Go!"
 
 animateHero();
 
@@ -195,15 +195,16 @@ function tutorialSplash(){
         document.body.prepend(splashtext);
         setTimeout(() => {
             swingSword();
-        }, 5000);
+        }, 8000);
         let pauseCount = 0;
         for(let i = 0; i < tutorialText.length; i++) {
             setTimeout(() => {
                 jigglePlayer(i)
-            }, 1250 + i*500);
-            if (tutorialText.charAt(i).includes("\\")) pauseCount++;
+            }, 3300 + i*500);
+            if (tutorialText.charAt(i) === (" ") && tutorialText.charAt(i + 1) === (" ")) pauseCount++;
             setTimeout(() => {
                 splashtext.textContent = tutorialText.substring(0, i + 1);
+                randomAudioPitch("audio/bloop.mp3")
             }, i*100 + pauseCount *2000)
         }
     }
@@ -215,7 +216,6 @@ function tutorialSplash(){
     }
 
     function jigglePlayer(dirnum){
-        console.log(dirnum)
         switch (dirnum) {
             case 0:
                 elem2.style.top = (screen.availHeight / 4 - 20) +"px"
@@ -230,7 +230,7 @@ function tutorialSplash(){
                 elem2.style.left = (spriteSize/1.5 - 20) + "px"
                 break;  
         }
-        // setTimeout(resetPlayer, 250)
+        // setTimeout(resetPlayer(), 250)
     }
     
     skiptext.id = "skiptext";
@@ -413,9 +413,8 @@ function swingSword(){
     if (currentSwingTime - lastSwingTime < swingCooldown) return;
     let elem = document.getElementById("sword")
     
-    let audio = new Audio('audio/swordswing.mp3');
-    audio.play();
-    
+    randomAudioPitch("audio/swordswing.mp3")
+
     elem.setAttribute("src", "images/swingframes/1.png")
     setTimeout(() => {
         elem.setAttribute("src", "images/swingframes/2.png")
@@ -434,6 +433,14 @@ function swingSword(){
     }, frameTime*4)
 
     lastSwingTime = currentSwingTime;
+}
+
+function randomAudioPitch(audioName){
+    let audio = new Audio(audioName);
+    let pitchShift = (Math.random() * .2 - .1); //avoids non-finite bugs
+    audio.playbackRate = 1 + pitchShift;
+    audio.preservesPitch = false;
+    audio.play();
 }
 
 function checkSwordCollision(){
