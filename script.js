@@ -8,7 +8,7 @@ const code = "8045"
 const swingCooldown = 500;
 const frameTime = 100;
 const blinkTime = 1000;
-const maxLives = 3;
+let maxLives = 3; //now can gain?
 let movementIncrement = 3;
 let bugMovement = 2;
 let playerSize = 16;
@@ -203,6 +203,7 @@ function tutorialSplash(){
             }, 3300 + i*500);
             if (tutorialText.charAt(i) === (" ") && tutorialText.charAt(i + 1) === (" ")) pauseCount++;
             setTimeout(() => {
+                if (gameStarted) return;
                 splashtext.textContent = tutorialText.substring(0, i + 1);
                 randomAudioPitch("audio/bloop.mp3")
             }, i*100 + pauseCount *2000)
@@ -291,6 +292,8 @@ function createGame(){
     elem.style.zIndex = "1001";
     document.getElementById("body").prepend(elem);
 
+    displayHealth();
+
     elem = document.createElement("img");
     elem.style.position = "absolute";
     elem.setAttribute("src", "images/bug.png");
@@ -333,7 +336,8 @@ function endGame() {
     animateHero(); //hero pic, not in-game hero :)
     let elem = document.getElementById("player");
     elem.remove();
-    bugSpray();
+    bugSpray("bug");
+    bugSpray("heart");
     elem = document.getElementById("sword");
     elem.remove();
     goingUp = goingDown = goingLeft = goingRight = false;
@@ -342,8 +346,8 @@ function endGame() {
     }, 1000)
 } 
 
-function bugSpray() { //needed more iterations, potential bug with movement interfering w/deletion
-    let bugList = document.getElementsByClassName("bug");
+function bugSpray(className) { //needed more iterations, potential bug with movement interfering w/deletion
+    let bugList = document.getElementsByClassName(className);
     for(let i = 0; i < 5; i++){
         for(let j = 0; j < bugList.length; j++) {
             bugList[j].remove();
@@ -512,10 +516,40 @@ function checkPlayerCollision(){
         }
 }
 
+function displayHealth(){
+    let bugList = document.getElementsByClassName("heart");
+    for(let i = 0; i < 5; i++){
+        for(let j = 0; j < bugList.length; j++) {
+            bugList[j].remove();
+        }
+    }
+
+    let fullHearts = maxLives - hitsTaken;
+    let emptyHearts = hitsTaken;
+    let elem = document.createElement("img")
+    elem.classList.add("heart")
+    elem.setAttribute("src", "images/fullheart.png")
+    elem.style.position = "fixed";
+    elem.style.zIndex = "1000";
+    elem.style.bottom = "50px";
+    elem.style.height = playerSize*2 + "px";
+    for(let i = 0; i < fullHearts; i++){
+        elem.style.left = 50 + i*(playerSize*2 + 10) + "px";
+        document.body.append(elem.cloneNode(true));
+    }
+    for(let i = 0; i < emptyHearts; i++){
+        elem.style.left = 50 + (fullHearts)*(playerSize*2) +  i*(playerSize*2) + "px";
+        elem.setAttribute("src", "images/emptyheart.png")
+        document.body.append(elem.cloneNode(true));
+    }
+    
+}
+
 function processDamage(){
     let currentHurtTime = Date.now();
     if (currentHurtTime - lastHurtTime < frameTime * 10) return;
     hitsTaken++;
+    displayHealth();
     if (hitsTaken >= maxLives) {
         let audio = new Audio('audio/gameover.mp3'); 
         audio.play();
