@@ -9,7 +9,8 @@ const swingCooldown = 500;
 const frameTime = 100;
 const blinkTime = 1000;
 let maxLives = 3; //now can gain?
-let score = 0;
+let swordScore = 100; //allowing for gains with upgrades
+let score = killScore = totalHit = 0;
 let wave = 1;
 let movementIncrement = 3;
 let bugMovement = 2;
@@ -431,7 +432,7 @@ function swingSword(){
     let currentSwingTime = Date.now();
     if (currentSwingTime - lastSwingTime < swingCooldown) return;
     let elem = document.getElementById("sword")
-    
+    totalHit = 0;
     randomAudioPitch("audio/swordswing.mp3")
 
     elem.setAttribute("src", "images/swingframes/1.png")
@@ -449,9 +450,16 @@ function swingSword(){
     setTimeout(() => {
         elem.setAttribute("src", "images/swordbase.png")
         checkSwordCollision();
+        killScore = totalHit * 100;
+        if(totalHit > 1){
+            console.log("more than one")
+            killScore *= (1.25 ^ totalHit)
+            displayCombo(totalHit, "Sword")
+        }
+        score += killScore;
+        if (gameStarted) displayScore();
     }, frameTime*4)
 
-    if(gameStarted) displayScore();
 
     lastSwingTime = currentSwingTime;
 }
@@ -467,17 +475,15 @@ function randomAudioPitch(audioName){
 function checkSwordCollision(){
     let bugList = document.getElementsByClassName("bug");
     let sword = document.getElementById("sword");
-    let killScore = 0;
-    let totalHit = 0;
     for(let i = 0; i < bugList.length; i++) {
         if (doElsCollide(bugList[i], sword)) {
+            totalHit++;
             bugList[i].remove();
             spawnNewBug();
             let audio = new Audio('audio/swordhit.mp3');
             audio.play();
         }
-    }
-
+    } //add diff sounds for combo kills, detach from individual hits?
 }
 
 function spawnNewBug(){
@@ -601,8 +607,19 @@ function displayWave(){
     waveElem.textContent = "Wave " + wave; //debating have wave 0/1 be "tutorial"
 }
 
-function displayCombo(combo){
-
+function displayCombo(combo, weapon){ //need to handle multiple combos, fade old, scroll? cap at ~3 combos shown?
+    let elem = document.createElement("p");
+    elem.classList.add("scoreelem")
+    elem.style.fontSize = playerSize*2 + "px";
+    elem.style.marginTop = "130px"; //temp
+    elem.style.opacity = "1"
+    elem.textContent = "+" + combo + "x " + weapon + " Combo!"
+    document.body.prepend(elem)
+    elem.style.transition = "3s"
+    // elem.style.opacity = "0"
+    setTimeout(() => {
+        elem.remove();
+    }, 3000) 
 }
 
 function processDamage(){
