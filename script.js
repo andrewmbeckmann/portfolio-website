@@ -9,6 +9,8 @@ const swingCooldown = 500;
 const frameTime = 100;
 const blinkTime = 1000;
 let maxLives = 3; //now can gain?
+let score = 0;
+let wave = 1;
 let movementIncrement = 3;
 let bugMovement = 2;
 let playerSize = 16;
@@ -22,6 +24,7 @@ document.getElementById("darklight").addEventListener("click", () => {
     if (safetySwitch) return;
     let currentSwitchHit = Date.now();
     let audio = new Audio('audio/switchsound.mp3');
+    audio.volume = .7;
     audio.play();
     if(!isLight) {
         isLight = true;
@@ -132,6 +135,10 @@ function animateHero(){
 }
 
 function heroTransition(){
+    document.documentElement.style.transition = ".75s"
+    let scrollbarWidth = 17; //default on windows chrome
+    if (navigator.userAgent.indexOf("Mac") != -1) scrollbarWidth = 16; //default on mac. this 1 pixel matters to ME.
+    document.documentElement.style.marginRight = "-" + scrollbarWidth + "px"
     document.getElementById("heropic").classList.remove("default");
     document.getElementById("heropic").classList.add("yellow");
     let typeframes = 150
@@ -152,6 +159,8 @@ function tutorialSplash(){
     if(splashed) return;
     splashed = true;
     document.documentElement.scrollTop = 0; 
+    document.documentElement.style.transition = "0s"
+    document.documentElement.style.marginRight = "0px"
     document.documentElement.style.overflowY = "hidden"
     elem = document.createElement("img");
     elem2 = document.createElement("img");
@@ -194,7 +203,7 @@ function tutorialSplash(){
         if(document.getElementById("splashtext")) return;
         document.body.prepend(splashtext);
         setTimeout(() => {
-            swingSword();
+            if(!gameStarted) swingSword();
         }, 8000);
         let pauseCount = 0;
         for(let i = 0; i < tutorialText.length; i++) {
@@ -204,6 +213,7 @@ function tutorialSplash(){
             if (tutorialText.charAt(i) === (" ") && tutorialText.charAt(i + 1) === (" ")) pauseCount++;
             setTimeout(() => {
                 if (gameStarted) return;
+                if(!document.getElementById("splashtext")) return;
                 splashtext.textContent = tutorialText.substring(0, i + 1);
                 randomAudioPitch("audio/bloop.mp3")
             }, i*100 + pauseCount *2000)
@@ -219,16 +229,16 @@ function tutorialSplash(){
     function jigglePlayer(dirnum){
         switch (dirnum) {
             case 0:
-                elem2.style.top = (screen.availHeight / 4 - 20) +"px"
+                elem2.style.top = (screen.availHeight / 4 - 60) +"px"
                 break;
             case 1:
-                elem2.style.left = (spriteSize/1.5 + 20) + "px"
+                elem2.style.left = (spriteSize/1.5 + 60) + "px"
                 break;
             case 2:
-                elem2.style.top = (screen.availHeight / 4 + 20) +"px"
+                elem2.style.top = (screen.availHeight / 4 + 60) +"px"
                 break;
             case 3:
-                elem2.style.left = (spriteSize/1.5 - 20) + "px"
+                elem2.style.left = (spriteSize/1.5 - 60) + "px"
                 break;  
         }
         // setTimeout(resetPlayer(), 250)
@@ -278,6 +288,7 @@ function tutorialSplash(){
 }
 
 function createGame(){
+    window.scrollTo({top: 0, behavior: "instant"})
     gameStarted = true;
     let elem = document.createElement("img");
     adjustSpriteSize();
@@ -293,6 +304,8 @@ function createGame(){
     document.getElementById("body").prepend(elem);
 
     displayHealth();
+    displayScore();
+    displayWave();
 
     elem = document.createElement("img");
     elem.style.position = "absolute";
@@ -338,6 +351,8 @@ function endGame() {
     elem.remove();
     bugSpray("bug");
     bugSpray("heart");
+    document.getElementById("score").remove();
+    document.getElementById("wave").remove();
     elem = document.getElementById("sword");
     elem.remove();
     goingUp = goingDown = goingLeft = goingRight = false;
@@ -436,6 +451,8 @@ function swingSword(){
         checkSwordCollision();
     }, frameTime*4)
 
+    if(gameStarted) displayScore();
+
     lastSwingTime = currentSwingTime;
 }
 
@@ -450,14 +467,17 @@ function randomAudioPitch(audioName){
 function checkSwordCollision(){
     let bugList = document.getElementsByClassName("bug");
     let sword = document.getElementById("sword");
-        for(let i = 0; i < bugList.length; i++) {
-            if (doElsCollide(bugList[i], sword)) {
-                bugList[i].remove();
-                spawnNewBug();
-                let audio = new Audio('audio/swordhit.mp3');
-                audio.play();
-            }
+    let killScore = 0;
+    let totalHit = 0;
+    for(let i = 0; i < bugList.length; i++) {
+        if (doElsCollide(bugList[i], sword)) {
+            bugList[i].remove();
+            spawnNewBug();
+            let audio = new Audio('audio/swordhit.mp3');
+            audio.play();
         }
+    }
+
 }
 
 function spawnNewBug(){
@@ -473,7 +493,7 @@ function spawnNewBug(){
     } else { //left or right
         elem.style.top = (window.innerHeight/10)*(Math.random() * 10) + "px";
         if (Math.random() < .5) elem.style.left = "0px";
-        else elem.style.left = window.innerWidth + "px";
+        else elem.style.right = "0px";
     }
     let bugSize = playerSize + Math.trunc(Math.random() * (playerSize/2))
     elem.setAttribute("height", bugSize);
@@ -517,32 +537,72 @@ function checkPlayerCollision(){
 }
 
 function displayHealth(){
-    let bugList = document.getElementsByClassName("heart");
-    for(let i = 0; i < 5; i++){
-        for(let j = 0; j < bugList.length; j++) {
-            bugList[j].remove();
-        }
-    }
+    bugSpray("heart")
 
     let fullHearts = maxLives - hitsTaken;
     let emptyHearts = hitsTaken;
     let elem = document.createElement("img")
     elem.classList.add("heart")
     elem.setAttribute("src", "images/fullheart.png")
-    elem.style.position = "fixed";
-    elem.style.zIndex = "1000";
-    elem.style.bottom = "50px";
     elem.style.height = playerSize*2 + "px";
     for(let i = 0; i < fullHearts; i++){
         elem.style.left = 50 + i*(playerSize*2 + 10) + "px";
         document.body.append(elem.cloneNode(true));
     }
     for(let i = 0; i < emptyHearts; i++){
-        elem.style.left = 50 + (fullHearts)*(playerSize*2) +  i*(playerSize*2) + "px";
+        elem.style.left = 50 + (fullHearts)*(playerSize*2 + 10) +  i*(playerSize*2 + 10) + "px";
         elem.setAttribute("src", "images/emptyheart.png")
         document.body.append(elem.cloneNode(true));
     }
     
+}
+
+function createScore(){
+    let elem = document.createElement("p");
+    elem.id = "score"
+    elem.classList.add("scoreelem")
+    elem.style.fontSize = playerSize*2 + "px";
+    document.body.prepend(elem.cloneNode(true))
+}
+
+function displayScore(){
+    let scoreElem = document.getElementById("score");
+    if(!scoreElem) {
+        createScore();
+        scoreElem = document.getElementById("score");
+    }
+    scoreElem.textContent = score;
+}
+
+function createWave(){
+    let elem = document.createElement("p");
+    elem.id = "wave"
+    elem.classList.add("scoreelem")
+    elem.style.fontSize = playerSize + "px";
+    elem.style.marginTop = "30px";
+    document.body.prepend(elem.cloneNode(true))
+}
+
+function displayScore(){
+    let scoreElem = document.getElementById("score");
+    if(!scoreElem) {
+        createScore();
+        scoreElem = document.getElementById("score");
+    }
+    scoreElem.textContent = score;
+}
+
+function displayWave(){
+    let waveElem = document.getElementById("wave");
+    if(!waveElem) {
+        createWave();
+        waveElem = document.getElementById("wave");
+    }
+    waveElem.textContent = "Wave " + wave; //debating have wave 0/1 be "tutorial"
+}
+
+function displayCombo(combo){
+
 }
 
 function processDamage(){

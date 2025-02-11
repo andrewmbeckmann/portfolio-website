@@ -1,5 +1,6 @@
 html {
     scroll-behavior: smooth;
+    overflow-x: hidden;
 }
 
 body {
@@ -407,6 +408,21 @@ body.light button{
     #crazyemail {
         flex-direction: column;
     }
+}
+
+.heart {
+    position: fixed;
+    z-index: 1000;
+    bottom: 50px;
+}
+
+.scoreelem {
+    text-align: right;
+    font-family: "Pixelify Sans", serif;
+    position: fixed !important;
+    top: 0px;
+    z-index: 1000;
+    right: 50px;
 }
 
 @keyframes slowblink {
