@@ -360,6 +360,7 @@ function endGame() {
     setTimeout(() => {
         hitsTaken = 0;
     }, 1000)
+    resetWaves();
 } 
 
 function resetWaves(){
@@ -399,7 +400,14 @@ function moveBugs(){
     }
     smallList = document.querySelectorAll(".armorbug");
     if(smallList){
-        for (i = 0; i < smallList.length; i++) {
+        for (i = 0; i < smallList.length; i++) { //could use return to make some odd freezing enemies
+            if(smallList[i].classList.contains("bug")) continue; //no double speed if so. interesting bug to use later?
+            moveBug(smallList[i])
+        }
+    }
+    smallList = document.querySelectorAll(".spider");
+    if(smallList){
+        for (i = 0; i < smallList.length; i++) { //then check range 
             moveBug(smallList[i])
         }
     }
@@ -483,7 +491,7 @@ function swingSword(){
 
 function randomAudioPitch(audioName){
     let audio = new Audio(audioName);
-    let pitchShift = (Math.random() * .2 - .1); //avoids non-finite bugs
+    let pitchShift = (Math.random() * .2 - .1); //avoids non-finite bugs when defined first
     audio.playbackRate = 1 + pitchShift;
     audio.preservesPitch = false;
     audio.play();
@@ -501,6 +509,18 @@ function checkSwordCollision(){
             audio.play();
         }
     } //add diff sounds for combo kills, detach from individual hits?
+    bugList = document.getElementsByClassName("armorbug");
+    for(let i = 0; i < bugList.length; i++) {
+        if (doElsCollide(bugList[i], sword)) { //dont up hit because no kill, refactor?
+            let tempIndex = i;
+            setTimeout(()=> { //need invuln through rest of sword swing
+                bugList[tempIndex].classList.add("bug"); //dont remove from armorbug, might use for tracking data
+            }, 200)
+            bugList[i].src = ("images/enemies/bug.png"); 
+            let audio = new Audio('audio/armorhit.mp3');
+            audio.play();
+        }
+    }
 }
 
 function spawnNewBug(type){
@@ -700,7 +720,11 @@ function processWave(num){
         displayCombo(1, "gameover")
         return;
     }
-    if (waves[wave - 1].length == 0 && !document.getElementsByClassName("enemy")) wave++;
+    console.log(!document.getElementsByClassName("enemy"))
+    if (waves[wave - 1].length == 0 && document.getElementsByClassName("enemy").length == 0) {
+        wave++;
+        processWave(2);
+    };
     for(let i = 0; i < num; i++){
         if(waves[wave - 1].length == 0) break; //designed to not allow overflow across waves. 
         let char = waves[wave - 1].charAt(0);
