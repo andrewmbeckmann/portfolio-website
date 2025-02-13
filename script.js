@@ -9,7 +9,7 @@ const swingCooldown = 500;
 const frameTime = 100;
 const blinkTime = 1000;
 let maxLives = 3; //now can gain?
-let swordScore = 100; //allowing for gains with upgrades
+let swordScore = 100; //allowing for gains with upgrades (also yes more items coming)
 let score = killScore = totalHit = 0;
 let wave = 1;
 let movementIncrement = 3;
@@ -18,6 +18,7 @@ let playerSize = 16;
 let playerX = playerY = hitsTaken = 0;
 let goingUp = goingDown = goingLeft = goingRight = false;
 let tutorialText = "Move your character with WASD.  Attack with your L key.  Go!"
+const waves = ["0000", "0001", "11011", "11111"]; //will make a text parser for this soon, what a win for mutable arrays lol
 
 animateHero();
 
@@ -260,8 +261,8 @@ function tutorialSplash(){
     }, 50); //trying to avoid lag killing transitions
 
     let autoPlay = setTimeout(() => {
-        // if (!gameStarted) drySplash();
-    }, 10000);
+        if (!gameStarted) drySplash();
+    }, 12000);
 
     function drySplash(){
         if(gameStarted) return; //potential failure to remove keypress, investigate
@@ -271,11 +272,19 @@ function tutorialSplash(){
                 drySplash();
             }
         });
-        splash.style.opacity = "0.6"
-        elem.remove();
-        elem2.remove();
+        splash.style.opacity = "0.7"
+        elem.style.transition = ".5s";
+        elem2.style.transition = ".5s";
+        splashtext.style.transition = ".5s";
+        elem.style.opacity = "0";
+        elem2.style.opacity = "0";
+        splashtext.style.opacity = "0";
         skiptext.remove();
-        splashtext.remove();
+        setTimeout(() => {
+            elem.remove();
+            elem2.remove();
+            splashtext.remove();
+        }, 500)
         clearTimeout(autoPlay);
         createGame();
         
@@ -311,19 +320,7 @@ function createGame(){
     displayScore();
     displayWave();
 
-    elem = document.createElement("img");
-    elem.style.position = "absolute";
-    elem.setAttribute("src", "images/bug.png");
-    for (i = 0; i < 5; i++) {      
-        elem.classList.add("bug");
-        elem.style.left = 100*i + "px";
-        elem.style.top = "200px";
-        elem.style.zIndex = "1001"; 
-        let bugSize = playerSize + Math.trunc(Math.random() * (playerSize/2))
-        elem.setAttribute("height", bugSize);
-        elem.setAttribute("width", bugSize);
-        document.getElementById("body").prepend(elem.cloneNode(true))
-    }
+    processWave(3);
 
     elem = document.createElement("img");
     elem.setAttribute("src", "images/swordbase.png");
@@ -364,6 +361,10 @@ function endGame() {
         hitsTaken = 0;
     }, 1000)
 } 
+
+function resetWaves(){
+    waves = ["0000", "0001", "11011", "11111"];
+}
 
 function bugSpray(className) { //needed more iterations, potential bug with movement interfering w/deletion
     let bugList = document.getElementsByClassName(className);
@@ -468,11 +469,11 @@ function swingSword(){
         killScore = totalHit * 100;
         if(totalHit > 1){
             console.log("more than one")
-            killScore *= (1.25 ^ totalHit)
+            killScore *= (1.25 ** totalHit)
             displayCombo(totalHit, "Sword")
-            if(Math.random * 100 * ((1.25 ^ totalHit)) > 99) spawnHeart();
         }
-        score += killScore;
+        if(totalHit > 0 && Math.random() * 100 * ((1.25 ** totalHit)) > 90) spawnHeart();
+        score += Math.floor(killScore);
         if (gameStarted) displayScore();
     }, frameTime*4)
 
@@ -495,19 +496,21 @@ function checkSwordCollision(){
         if (doElsCollide(bugList[i], sword)) {
             totalHit++;
             bugList[i].remove();
-            spawnNewBug();
+            processWave(1);
             let audio = new Audio('audio/swordhit.mp3');
             audio.play();
         }
     } //add diff sounds for combo kills, detach from individual hits?
 }
 
-function spawnNewBug(){
+function spawnNewBug(type){
+    let bugType = matchBug(type);
     elem = document.createElement("img");
     elem.style.position = "absolute";
     elem.style.zIndex = "1001"; 
-    elem.setAttribute("src", "images/bug.png");   
-    elem.classList.add("bug");
+    elem.setAttribute("src", "images/enemies/" + bugType + ".png");   
+    elem.classList.add(bugType);
+    elem.classList.add("enemy")
     if(Math.random() < .5) { //top or bottom
         elem.style.left = (window.innerWidth/10)*(Math.random() * 10) + "px";
         if (Math.random() < .5) elem.style.top = "0px";
@@ -518,9 +521,17 @@ function spawnNewBug(){
         else elem.style.right = "0px";
     }
     let bugSize = playerSize + Math.trunc(Math.random() * (playerSize/2))
-    elem.setAttribute("height", bugSize);
     elem.setAttribute("width", bugSize);
     document.getElementById("body").prepend(elem.cloneNode(true))
+}
+
+function matchBug(type){
+    switch(type) {
+        case 0:
+            return "bug"
+        case 1: 
+            return "armorbug"
+    }
 }
 
 function movePlayer(x, y){  
@@ -631,6 +642,7 @@ function displayCombo(combo, weapon){ //need to handle multiple combos, fade old
     elem.style.opacity = "1"
     elem.textContent = "+" + combo + "x " + weapon + " Combo!"
     if(weapon === "heart") elem.textContent = "Extra Heart Bonus!"
+    if(weapon === "gameover") elem.textContent = "LAST WAVE CLEARED"
     if(document.getElementsByClassName("scoreElem") && document.getElementsByClassName("scoreElem").length > 0 ){
         let scoreElems = document.getElementsByClassName("scoreElem");
         if (scoreElems.length > 2) {
@@ -681,6 +693,22 @@ function processHeart() {
     displayCombo(0, "heart");
     score += 3000; //hardcode for now lol
     displayScore();
+}
+
+function processWave(num){
+    if(waves[wave-1].length == 0 && waves.length == wave) {
+        displayCombo(1, "gameover")
+        return;
+    }
+    if (waves[wave - 1].length == 0 && !document.getElementsByClassName("enemy")) wave++;
+    for(let i = 0; i < num; i++){
+        if(waves[wave - 1].length == 0) break; //designed to not allow overflow across waves. 
+        let char = waves[wave - 1].charAt(0);
+        console.log(char)
+        setTimeout(spawnNewBug(Number(char)))
+        waves[wave - 1] = waves[wave - 1].substring(1);
+    } 
+    displayWave();
 }
 
 function processDamage(){

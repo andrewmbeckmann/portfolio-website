@@ -410,7 +410,7 @@ body.light button{
     }
 }
 
-.heart {
+.heart { /*applies to hud hearts, not the extra hearts in-game*/
     position: fixed;
     z-index: 1000;
     bottom: 50px;
