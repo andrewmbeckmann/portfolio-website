@@ -18,7 +18,7 @@ let playerSize = 16;
 let playerX = playerY = hitsTaken = 0;
 let goingUp = goingDown = goingLeft = goingRight = false;
 let tutorialText = "Move your character with WASD.  Attack with your L key.  Go!"
-const waves = ["0000", "0001", "11011", "11111"]; //will make a text parser for this soon, what a win for mutable arrays lol
+let waves = ["0000", "0001", "11011", "11121", "12312121" , "12312121" , "12312121"]; //will make a text parser for this soon, what a win for mutable arrays lol
 
 animateHero();
 
@@ -352,6 +352,9 @@ function endGame() {
     elem.remove();
     bugSpray("bug");
     bugSpray("heart");
+    bugSpray("spider");
+    bugSpray("armorbug");
+    bugSpray("web");
     document.getElementById("score").remove();
     if(document.getElementById("heart")) document.getElementById("heart").remove();
     document.getElementById("wave").remove();
@@ -408,9 +411,15 @@ function moveBugs(){
     smallList = document.querySelectorAll(".spider");
     if(smallList){
         for (i = 0; i < smallList.length; i++) { //then check range 
-            moveBug(smallList[i])
-        }
+            if(smallList[i].classList.contains("inrange")) {
+                rangeAcquired(elem);
+                return;
+            }
+            lookAtPlayer(smallList[i])
+            moveSpider(smallList[i])
+        };
     }
+    
 }
 
 function adjustSpriteSize(){
@@ -512,12 +521,23 @@ function checkSwordCollision(){
     bugList = document.getElementsByClassName("armorbug");
     for(let i = 0; i < bugList.length; i++) {
         if (doElsCollide(bugList[i], sword)) { //dont up hit because no kill, refactor?
-            let tempIndex = i;
+            let tempRef = bugList[i];
             setTimeout(()=> { //need invuln through rest of sword swing
-                bugList[tempIndex].classList.add("bug"); //dont remove from armorbug, might use for tracking data
+                tempRef.classList.add("bug"); //dont remove from armorbug, might use for tracking data
+                console.log("vuln")
             }, 200)
             bugList[i].src = ("images/enemies/bug.png"); 
             let audio = new Audio('audio/armorhit.mp3');
+            audio.play();
+        }
+    }
+    bugList = document.getElementsByClassName("spider");
+    for(let i = 0; i < bugList.length; i++) {
+        if (doElsCollide(bugList[i], sword)) {
+            totalHit++;
+            bugList[i].remove();
+            processWave(1);
+            let audio = new Audio('audio/swordhit.mp3');
             audio.play();
         }
     }
@@ -542,6 +562,7 @@ function spawnNewBug(type){
     }
     let bugSize = playerSize + Math.trunc(Math.random() * (playerSize/2))
     elem.setAttribute("width", bugSize);
+    if (bugType === "spider") elem.setAttribute("width", 2*bugSize);
     document.getElementById("body").prepend(elem.cloneNode(true))
 }
 
@@ -551,6 +572,8 @@ function matchBug(type){
             return "bug"
         case 1: 
             return "armorbug"
+        case 2: 
+            return "spider"
     }
 }
 
@@ -572,11 +595,86 @@ function moveBug(elem){
     let bugSize = position.bottom - position.top; // unused atm, keeping for potential logic
     let currentX = position.left;
     let currentY = position.top;
-    elem.style.position = "absolute"
+    elem.style.position = "fixed"
     if (currentX > playerX) elem.style.left = currentX - bugMovement + "px";
     else if (currentX < playerX) elem.style.left = currentX + bugMovement + "px";
     if (currentY > playerY) elem.style.top = currentY - bugMovement + "px";
     else if (currentY < playerY) elem.style.top = currentY + bugMovement + "px";
+}
+
+function moveSpider(elem){ 
+    let currentX = elem.offsetLeft;
+    let currentY = elem.offsetTop;
+    if (Math.abs(currentX - playerX) < bugMovement * 40 && Math.abs(currentY - playerY) < bugMovement * 40){
+        rangeAcquired(elem);
+        return;
+    } 
+
+    elem.style.position = "fixed"
+    if (currentX > playerX) elem.style.left = currentX - bugMovement + "px";
+    else if (currentX < playerX) elem.style.left = currentX + bugMovement + "px";
+    if (currentY > playerY) elem.style.top = currentY - bugMovement + "px";
+    else if (currentY < playerY) elem.style.top = currentY + bugMovement + "px";
+}
+
+function lookAtPlayer(elem){
+    let position = elem.getBoundingClientRect();
+    let currentX = position.left;
+    let currentY = position.top;
+    let angle = Math.atan2(playerX - currentX, - (playerY - currentY) )*(180 / Math.PI);      
+    elem.style.transform = "rotate(" + angle + "deg)";  
+}
+
+function rangeAcquired(elem){
+    if(elem.classList.contains("spidercooldown")) return;
+    elem.classList.add("inrange");
+    elem.classList.add("spidercooldown");
+    let position = elem.getBoundingClientRect();
+    let currentX = position.left;
+    let currentY = position.top;
+    let angle = Math.atan2(playerX - currentX, - (playerY - currentY)) * (180 / Math.PI);      
+    elem.style.transition = "1s"
+    elem.style.transform = "rotate(" + angle + "deg) scale(4, 0.4)";  
+    fireWeb(angle, elem)
+    elem.classList.remove("inrange")
+    setTimeout(() => {
+        elem.style.transition = ".5s"
+        elem.style.transform = "rotate(" + angle + "deg) scale(4, 0.4)"
+        setTimeout(() => {
+            elem.style.transition = "0s"
+        }, 500)
+    }, 1000);  
+    setTimeout(() => {
+        elem.classList.remove("spidercooldown")
+    }, 3000);
+}
+
+function fireWeb(angle, spiderElem){
+    let startingX = spiderElem.offsetLeft;
+    let startingY = spiderElem.offsetTop;
+    let elem = document.createElement("img")
+    elem.src = "images/spiderweb.png"
+    elem.style.zIndex = "1000"
+    elem.style.height =  playerSize*1.5 + "px"
+    elem.style.position = "fixed";
+    elem.style.top = startingY + "px";
+    elem.style.left = startingX + "px";
+    elem.classList.add("web")
+    document.body.append(elem);
+
+    let frameNum = 8;
+    for(let i = 0; i < frameNum; i++){
+        let tempIndex = i;
+        setTimeout(() => {
+            let speed = (frameNum - tempIndex) * bugMovement;
+            elem.style.top = Number(elem.style.top.substring(0, elem.style.top.length-2)) + speed * Math.sin(angle) + "px";
+            elem.style.left = Number(elem.style.left.substring(0, elem.style.left.length-2)) + speed * Math.cos(angle) + "px";
+        }, frameTime*i);
+    }
+    
+    setTimeout(() => {
+        elem.remove();
+    }, 10000)
 }
 
 function checkPlayerCollision(){
@@ -585,6 +683,20 @@ function checkPlayerCollision(){
         for(let i = 0; i < bugList.length; i++) {
             if (doElsCollide(bugList[i], player)) {
                 processDamage();
+            }
+        }
+        bugList = document.getElementsByClassName("armorbug");
+        for(let i = 0; i < bugList.length; i++) {
+            if (bugList[i].classList.contains("bug")) break;
+            if (doElsCollide(bugList[i], player)) {
+                processDamage();
+            }
+        }
+        bugList = document.getElementsByClassName("web");
+        for(let i = 0; i < bugList.length; i++) {
+            if (doElsCollide(bugList[i], player)) {
+                processWeb();
+                bugList[i].remove();
             }
         }
         if(document.getElementById("heart") && doElsCollide(player, document.getElementById("heart"))) processHeart();
@@ -701,7 +813,7 @@ function spawnHeart(){
 function processHeart() {
     document.getElementById("heart").remove();
     if(hitsTaken > 0) {
-        hitsTaken--;
+        hitsTaken = 0;
         displayHealth();
         return;
     }
@@ -720,15 +832,13 @@ function processWave(num){
         displayCombo(1, "gameover")
         return;
     }
-    console.log(!document.getElementsByClassName("enemy"))
     if (waves[wave - 1].length == 0 && document.getElementsByClassName("enemy").length == 0) {
         wave++;
-        processWave(2);
+        processWave(3);
     };
     for(let i = 0; i < num; i++){
         if(waves[wave - 1].length == 0) break; //designed to not allow overflow across waves. 
         let char = waves[wave - 1].charAt(0);
-        console.log(char)
         setTimeout(spawnNewBug(Number(char)))
         waves[wave - 1] = waves[wave - 1].substring(1);
     } 
@@ -762,6 +872,18 @@ function processDamage(){
     }
     hurtAnimation()
     lastHurtTime = currentHurtTime;
+}
+
+function processWeb(){
+    if(document.getElementById("player").classList.contains("slowed")) return;
+    document.getElementById("player").classList.add("slowed")
+    
+    movementIncrement = Math.trunc(window.innerWidth * .003); 
+
+    setTimeout(() => {
+        document.getElementById("player").classList.remove("slowed")
+        movementIncrement = Math.trunc(window.innerWidth * .006); 
+    }, 3000)
 }
 
 function doElsCollide (el1, el2) {
