@@ -241,6 +241,9 @@ function tutorialSplash(){
             case 3:
                 elem2.style.left = (spriteSize/1.5 - 60) + "px"
                 break;  
+            case 4:
+                elem2.style.top = (screen.availHeight / 4) +"px"
+                break;  
         }
         // setTimeout(resetPlayer(), 250)
     }
@@ -353,9 +356,9 @@ function endGame() {
     bugSpray("bug");
     bugSpray("heart");
     document.getElementById("score").remove();
+    if(document.getElementById("heart")) document.getElementById("heart").remove();
     document.getElementById("wave").remove();
-    elem = document.getElementById("sword");
-    elem.remove();
+    document.getElementById("sword").remove();
     goingUp = goingDown = goingLeft = goingRight = false;
     setTimeout(() => {
         hitsTaken = 0;
@@ -375,10 +378,7 @@ function runGame(){
     adjustPlayerPos();
     let gameTicks = setInterval(gameLogic, frameTime);
         function gameLogic() {
-            let smallList = document.querySelectorAll(".bug");
-            for (i = 0; i < smallList.length; i++) {
-                moveBug(smallList[i])
-            }
+            moveBugs()
             if (goingUp) movePlayer(0, -movementIncrement);
             if (goingDown) movePlayer(0, movementIncrement);
             if (goingLeft) movePlayer(-movementIncrement, 0);
@@ -387,6 +387,21 @@ function runGame(){
             checkPlayerCollision();
             if (!gameStarted) clearInterval(gameTicks);
         }
+}
+
+function moveBugs(){
+    let smallList = document.querySelectorAll(".bug");
+    if(smallList){
+        for (i = 0; i < smallList.length; i++) {
+            moveBug(smallList[i])
+        }
+    }
+    smallList = document.querySelectorAll(".armorbug");
+    if(smallList){
+        for (i = 0; i < smallList.length; i++) {
+            moveBug(smallList[i])
+        }
+    }
 }
 
 function adjustSpriteSize(){
@@ -455,6 +470,7 @@ function swingSword(){
             console.log("more than one")
             killScore *= (1.25 ^ totalHit)
             displayCombo(totalHit, "Sword")
+            if(Math.random * 100 * ((1.25 ^ totalHit)) > 99) spawnHeart();
         }
         score += killScore;
         if (gameStarted) displayScore();
@@ -540,6 +556,7 @@ function checkPlayerCollision(){
                 processDamage();
             }
         }
+        if(document.getElementById("heart") && doElsCollide(player, document.getElementById("heart"))) processHeart();
 }
 
 function displayHealth(){
@@ -562,7 +579,7 @@ function displayHealth(){
     }
     
 }
-
+//future refactor for this to not call create more than one
 function createScore(){
     let elem = document.createElement("p");
     elem.id = "score"
@@ -609,17 +626,61 @@ function displayWave(){
 
 function displayCombo(combo, weapon){ //need to handle multiple combos, fade old, scroll? cap at ~3 combos shown?
     let elem = document.createElement("p");
-    elem.classList.add("scoreelem")
     elem.style.fontSize = playerSize*2 + "px";
     elem.style.marginTop = "130px"; //temp
     elem.style.opacity = "1"
     elem.textContent = "+" + combo + "x " + weapon + " Combo!"
-    document.body.prepend(elem)
+    if(weapon === "heart") elem.textContent = "Extra Heart Bonus!"
+    if(document.getElementsByClassName("scoreElem") && document.getElementsByClassName("scoreElem").length > 0 ){
+        let scoreElems = document.getElementsByClassName("scoreElem");
+        if (scoreElems.length > 2) {
+            elem.style.marginTop = "230px"
+            scoreElems[1].style.marginTop = "130px"
+            scoreElems[2].style.marginTop = "180px"
+            scoreElems[0].remove(); //always first in, because we use append and its doc order
+        } else if (scoreElems.length == 2) {
+            elem.style.marginTop = "230px"
+        } else {
+            elem.style.marginTop = "180px"
+        }
+    } 
+    elem.classList.add("scoreelem")
+    document.body.append(elem)
     elem.style.transition = "3s"
     // elem.style.opacity = "0"
     setTimeout(() => {
         elem.remove();
     }, 3000) 
+}
+
+function spawnHeart(){
+    if(document.getElementById("heart")) return; //stopping weird dupe spawns
+    let elem = document.createElement("img");
+    elem.src = "images/addheart.png"
+    elem.style.height = playerSize + "px";
+    elem.style.position = "fixed";
+    elem.id = "heart"
+    elem.style.zIndex = 1000;
+    elem.style.left = (window.innerWidth/5)*(Math.random() * 3) + (window.innerWidth/5) + "px";
+    elem.style.top = (window.innerHeight/5)*(Math.random() * 3) + (window.innerWidth/5) + "px";
+    document.body.append(elem);
+}
+
+function processHeart() {
+    document.getElementById("heart").remove();
+    if(hitsTaken > 0) {
+        hitsTaken--;
+        displayHealth();
+        return;
+    }
+    if(maxLives < 5){
+        maxLives++;
+        displayHealth();
+        return;
+    }
+    displayCombo(0, "heart");
+    score += 3000; //hardcode for now lol
+    displayScore();
 }
 
 function processDamage(){
