@@ -18,7 +18,7 @@ let playerSize = 16;
 let playerX = playerY = hitsTaken = 0;
 let goingUp = goingDown = goingLeft = goingRight = false;
 let tutorialText = "Move your character with WASD.  Attack with your L key.  Go!"
-let waves = ["0000", "0001", "11011", "11121", "12312121" , "12312121" , "12312121"]; //will make a text parser for this soon, what a win for mutable arrays lol
+let waves = ["0000", "0001", "11011", "11121", "12001001" , "112112121" , "211211111"]; //will make a text parser for this soon, what a win for mutable arrays lol
 
 animateHero();
 
@@ -86,7 +86,7 @@ window.addEventListener("keyup", e => {
     keyArray.push(key);
 
     if(keyArray.length > 4) keyArray = keyArray.slice(keyArray.length - 4);
-    if(keyArray.join('') === code && !gameStarted){ //will add some goofy cheat code i think
+    if(keyArray.join('') === code && !gameStarted){ //will add some goofy cheat code i think, current here as testing tool
         createGame();
     }
 
@@ -120,6 +120,7 @@ window.addEventListener("keydown", e =>{
 function animateHero(){
     let blink = false;
     let animation = setInterval(heroBlink, blinkTime)
+        document.getElementById("heropic").style.imageRendering = "pixelated"
         function heroBlink(){
             if (computerClicked) {
                 clearInterval(animation);
@@ -265,7 +266,14 @@ function tutorialSplash(){
     }, 12000);
 
     function drySplash(){
-        if(gameStarted) return; //potential failure to remove keypress, investigate
+        if(gameStarted){
+            setTimeout(() => { //attempt to stop bug with not removing text 
+                elem.remove();
+                elem2.remove();
+                splashtext.remove();
+            }, 50)
+            return;
+        }  //potential failure to remove keypress, investigate
         document.removeEventListener("keypress", e => {
             if (e.code == "Space") {
                 e.preventDefault();
@@ -304,6 +312,7 @@ function createGame(){
     window.scrollTo({top: 0, behavior: "instant"})
     gameStarted = true;
     let elem = document.createElement("img");
+    elem.style.imageRendering = "pixelated";
     adjustSpriteSize();
     elem.setAttribute("src", "images/computer.png");
     elem.setAttribute("id", "player");
@@ -315,6 +324,13 @@ function createGame(){
     elem.style.top = "300px";
     elem.style.zIndex = "1001";
     document.getElementById("body").prepend(elem);
+
+    let splashlist = document.getElementsByClassName("splashelem") //redundancies to patch old text bug
+    for(let i = 0; i < splashlist.length; i++){
+        splashlist[i].remove();
+    }
+    let skip = document.getElementById("skiptext");
+    if (skip) skip.remove();
 
     displayHealth();
     displayScore();
@@ -547,6 +563,7 @@ function spawnNewBug(type){
     let bugType = matchBug(type);
     elem = document.createElement("img");
     elem.style.position = "absolute";
+    elem.style.imageRendering = "pixelated";
     elem.style.zIndex = "1001"; 
     elem.setAttribute("src", "images/enemies/" + bugType + ".png");   
     elem.classList.add(bugType);
@@ -659,6 +676,7 @@ function fireWeb(angle, spiderElem){
     elem.style.position = "fixed";
     elem.style.top = startingY + "px";
     elem.style.left = startingX + "px";
+    elem.style.imageRendering = "pixelated";
     elem.classList.add("web")
     document.body.append(elem);
 
@@ -711,6 +729,7 @@ function displayHealth(){
     elem.classList.add("heart")
     elem.setAttribute("src", "images/fullheart.png")
     elem.style.height = playerSize*2 + "px";
+    elem.style.imageRendering = "pixelated";
     for(let i = 0; i < fullHearts; i++){
         elem.style.left = 50 + i*(playerSize*2 + 10) + "px";
         document.body.append(elem.cloneNode(true));
@@ -800,6 +819,7 @@ function displayCombo(combo, weapon){ //need to handle multiple combos, fade old
 function spawnHeart(){
     if(document.getElementById("heart")) return; //stopping weird dupe spawns
     let elem = document.createElement("img");
+    elem.style.imageRendering = "pixelated";
     elem.src = "images/addheart.png"
     elem.style.height = playerSize + "px";
     elem.style.position = "fixed";
