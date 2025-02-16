@@ -13,6 +13,7 @@ let swordScore = 100; //allowing for gains with upgrades (also yes more items co
 let score = killScore = totalHit = 0;
 let wave = 1;
 let movementIncrement = 3;
+let slowFrames = 0;
 let bugMovement = 2;
 let playerSize = 16;
 let playerX = playerY = hitsTaken = 0;
@@ -167,7 +168,7 @@ function heroTransition(){
 }
 
 function tutorialSplash(){
-    if(splashed) return;
+    if(splashed || gameStarted) return;
     splashed = true;
     document.documentElement.scrollTop = 0; 
     document.documentElement.style.transition = "0s"
@@ -232,11 +233,6 @@ function tutorialSplash(){
         }
     }
     runSplashText();
-
-    function resetPlayer(){
-        elem2.style.left = (spriteSize/1.5 + 100) + "px"; //variables will soon be made
-        elem2.style.top = (screen.availHeight / 4) + "px";
-    }
 
     function jigglePlayer(dirnum){
         switch (dirnum) {
@@ -317,6 +313,8 @@ function tutorialSplash(){
 }
 
 function createGame(){
+    wave = Number(localStorage.getItem("savewave"))
+    score = Number(localStorage.getItem("savescore")) //gonna make this an option
     window.scrollTo({top: 0, behavior: "instant"})
     gameStarted = true;
     let elem = document.createElement("img");
@@ -386,10 +384,12 @@ function endGame() {
     document.getElementById("wave").remove();
     document.getElementById("sword").remove();
     goingUp = goingDown = goingLeft = goingRight = false;
-    setTimeout(() => {
-        hitsTaken = 0;
-    }, 1000)
     resetWaves();
+    setTimeout(() => { //helps with late regs
+        hitsTaken = 0;
+        localStorage.setItem("savewave", wave);
+        localStorage.setItem("savescore", score);
+    }, 1000)
 } 
 
 function displayPauseScreen(){ //handles end as well
@@ -457,6 +457,7 @@ function runGame(){
         function gameLogic() {
             if (paused) return;
             moveBugs()
+            if (slowFrames-- < 0) movementIncrement = Math.trunc(window.innerWidth * .006); 
             if (goingUp) movePlayer(0, -movementIncrement);
             if (goingDown) movePlayer(0, movementIncrement);
             if (goingLeft) movePlayer(-movementIncrement, 0);
@@ -914,6 +915,8 @@ function processWave(num){
     }
     if (waves[wave - 1].length == 0 && document.getElementsByClassName("enemy").length == 0) {
         wave++;
+        localStorage.setItem("savewave", wave);
+        localStorage.setItem("savescore", score);
         processWave(3);
     };
     for(let i = 0; i < num; i++){
@@ -956,15 +959,8 @@ function processDamage(){
 }
 
 function processWeb(){
-    if(document.getElementById("player").classList.contains("slowed")) return;
-    document.getElementById("player").classList.add("slowed")
-    
+    slowFrames = 30;
     movementIncrement = Math.trunc(window.innerWidth * .003); 
-
-    setTimeout(() => {
-        document.getElementById("player").classList.remove("slowed")
-        movementIncrement = Math.trunc(window.innerWidth * .006); 
-    }, 3000)
 }
 
 function doElsCollide (el1, el2) {
