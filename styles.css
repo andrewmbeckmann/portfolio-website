@@ -427,10 +427,10 @@ body.light button{
 
 @keyframes slowblink {
     from {opacity: 0.2;}
-    to {opacity: 0.4;}
+    to {opacity: 0.6;}
 }
 
-#skiptext {
+.blinking {
     animation: 1s infinite alternate slowblink;
 }
 
@@ -475,6 +475,14 @@ body.light button{
     image-rendering: pixelated;
     opacity: 0;
     z-index: 1000;
+}
+
+#pausetext{
+    font-family: "Pixelify Sans", serif;
+    position: fixed;
+    top: 25%;
+    text-align: center;
+    z-index: 2001;
 }
 
 .swordright {

@@ -18,7 +18,12 @@ let playerSize = 16;
 let playerX = playerY = hitsTaken = 0;
 let goingUp = goingDown = goingLeft = goingRight = false;
 let tutorialText = "Move your character with WASD.  Attack with your L key.  Go!"
-let waves = ["0000", "0001", "11011", "11121", "12001001" , "112112121" , "211211111"]; //will make a text parser for this soon, what a win for mutable arrays lol
+const setWaves = ["0200", "0001", "11011", "11121", "12001001" , "112112121" , "211211111"]; //will make a text parser for this soon, what a win for mutable arrays lol
+let waves = setWaves;
+let paused = endScreen = false;
+let webArray = [];
+
+if (!localStorage.getItem("highscore")) localStorage.setItem("highscore", "0")
 
 animateHero();
 
@@ -57,7 +62,8 @@ window.addEventListener("keyup", e => {
     let key = e.key.toLowerCase();
     let currentKeyTime = Date.now();
 
-    if (key === "escape" && gameStarted) endGame();
+    if (key === "escape" && paused) unPause();
+    if (key === "escape" && gameStarted && !paused) displayPauseScreen();
     if (gameStarted) {
         switch (key) {
             case "w":
@@ -185,6 +191,7 @@ function tutorialSplash(){
     elem.classList.add("splashelem")
     elem2.classList.add("splashelem")
     skiptext.classList.add("splashelem")
+    skiptext.classList.add("blinking")
     splashtext.classList.add("splashelem")
     elem.style.right = (spriteSize/1.5) + "px";
     elem2.style.left = (spriteSize/1.5  ) + "px";
@@ -301,7 +308,6 @@ function tutorialSplash(){
     document.addEventListener("keypress", e => {
         if(gameStarted) return;
         if (e.code == "Space") {
-            console.log();
             e.preventDefault();
             drySplash();
         }
@@ -353,6 +359,8 @@ function createGame(){
 }
 
 function endGame() {
+    paused = endScreen = false;
+    score = 0;
     gameStarted = computerClicked = splashed = false;
     splash = document.getElementById("splash")
     setTimeout(() => {
@@ -382,8 +390,49 @@ function endGame() {
     resetWaves();
 } 
 
+function displayPauseScreen(){ //handles end as well
+    if(paused) return;
+    document.getElementById("splash").style.zIndex = "2000"
+    document.getElementById("splash").style.opacity = ".9"
+    let elem = document.createElement("p");
+    elem.id = "pausetext";
+    elem.style.fontSize = playerSize * 2 + "px"
+    elem.textContent = "Your game is paused. Press esc again to unpause."
+    document.body.append(elem);
+    if(endScreen) {
+        if(Number(localStorage.getItem("highscore")) < score) localStorage.setItem("highscore", score.toString())
+        console.log("highscore is " + localStorage.getItem("highscore"));
+        elem.textContent = "GAME OVER."
+        let elem2 = document.createElement("p");
+        elem2.textContent = "HIGHSCORE: " + localStorage.getItem("highscore");
+        elem.appendChild(elem2)
+        elem2.style.position = "relative";
+        elem2.style.marginTop = playerSize + "px";
+        let elem3 = document.createElement("p")
+        elem3.textContent = "press any key to exit"
+        elem3.classList.add("blinking")
+        elem3.style.position = "fixed"
+        elem3.style.bottom = "50px"
+        elem.appendChild(elem3)
+        elem3.style.left = (window.innerWidth / 2) - (elem3.offsetWidth / 2) + "px";
+    }
+    elem.style.left = (window.innerWidth / 2) - (elem.offsetWidth / 2) + "px";
+    paused = true;
+}
+
+function unPause(){
+    document.getElementById("splash").style.zIndex = "999"
+    document.getElementById("splash").style.opacity = ".7"
+    document.getElementById("pausetext").remove();
+    setTimeout(() => {
+        paused = false;
+    }, 800)
+    if(endScreen) endGame();
+}
+
 function resetWaves(){
-    waves = ["0000", "0001", "11011", "11111"];
+    waves = setWaves;
+    wave = 1;
 }
 
 function bugSpray(className) { //needed more iterations, potential bug with movement interfering w/deletion
@@ -399,6 +448,7 @@ function runGame(){
     adjustPlayerPos();
     let gameTicks = setInterval(gameLogic, frameTime);
         function gameLogic() {
+            if (paused) return;
             moveBugs()
             if (goingUp) movePlayer(0, -movementIncrement);
             if (goingDown) movePlayer(0, movementIncrement);
@@ -435,7 +485,24 @@ function moveBugs(){
             moveSpider(smallList[i])
         };
     }
-    
+    smallList = webArray;
+    if(smallList.length > 0){
+        for (i = smallList.length - 1; i >= 0; i--){ 
+            smallList[i][1] = smallList[i][1] - 1;
+            let web = smallList[i][0];
+            if(smallList[i][1] < 1){
+                    if (smallList[i][1] < -92) {
+                        web.remove();
+                        webArray.splice(i, 1);
+                    }
+                continue;
+            }
+            let angle = smallList[i][2];
+            let speed = smallList[i][1] * bugMovement;
+            web.style.top = Number(web.style.top.substring(0, web.style.top.length-2)) + speed * Math.sin(angle) + "px";
+            web.style.left = Number(web.style.left.substring(0, web.style.left.length-2)) + speed * Math.cos(angle) + "px";
+        }
+    }   
 }
 
 function adjustSpriteSize(){
@@ -501,7 +568,6 @@ function swingSword(){
         checkSwordCollision();
         killScore = totalHit * 100;
         if(totalHit > 1){
-            console.log("more than one")
             killScore *= (1.25 ** totalHit)
             displayCombo(totalHit, "Sword")
         }
@@ -540,7 +606,6 @@ function checkSwordCollision(){
             let tempRef = bugList[i];
             setTimeout(()=> { //need invuln through rest of sword swing
                 tempRef.classList.add("bug"); //dont remove from armorbug, might use for tracking data
-                console.log("vuln")
             }, 200)
             bugList[i].src = ("images/enemies/bug.png"); 
             let audio = new Audio('audio/armorhit.mp3');
@@ -666,7 +731,7 @@ function rangeAcquired(elem){
     }, 3000);
 }
 
-function fireWeb(angle, spiderElem){
+function fireWeb(angle, spiderElem){ //make the web go in some array. basically it'll be the elem and then a value that lets the movement method know speed (maybe like 8 starting, then we use same speed calc. we also save angle for same purpose. once 0 & neg, no move. once 90x frametime, kill it. :) 
     let startingX = spiderElem.offsetLeft;
     let startingY = spiderElem.offsetTop;
     let elem = document.createElement("img")
@@ -680,19 +745,7 @@ function fireWeb(angle, spiderElem){
     elem.classList.add("web")
     document.body.append(elem);
 
-    let frameNum = 8;
-    for(let i = 0; i < frameNum; i++){
-        let tempIndex = i;
-        setTimeout(() => {
-            let speed = (frameNum - tempIndex) * bugMovement;
-            elem.style.top = Number(elem.style.top.substring(0, elem.style.top.length-2)) + speed * Math.sin(angle) + "px";
-            elem.style.left = Number(elem.style.left.substring(0, elem.style.left.length-2)) + speed * Math.cos(angle) + "px";
-        }, frameTime*i);
-    }
-    
-    setTimeout(() => {
-        elem.remove();
-    }, 10000)
+    webArray.push([elem, 9, angle]);
 }
 
 function checkPlayerCollision(){
@@ -826,7 +879,7 @@ function spawnHeart(){
     elem.id = "heart"
     elem.style.zIndex = 1000;
     elem.style.left = (window.innerWidth/5)*(Math.random() * 3) + (window.innerWidth/5) + "px";
-    elem.style.top = (window.innerHeight/5)*(Math.random() * 3) + (window.innerWidth/5) + "px";
+    elem.style.top = (window.innerHeight/5)*(Math.random() * 3) + (window.innerHeight/5) + "px";
     document.body.append(elem);
 }
 
@@ -873,7 +926,8 @@ function processDamage(){
     if (hitsTaken >= maxLives) {
         let audio = new Audio('audio/gameover.mp3'); 
         audio.play();
-        endGame();
+        endScreen = true;
+        displayPauseScreen();
         return;
     }
     let player = document.getElementById("player");
