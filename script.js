@@ -6,7 +6,7 @@ let keyArray = [];
 let gameStarted = computerClicked = splashed =  false;
 const code = "8045"
 const swingCooldown = 500;
-const frameTime = 100;
+let frameTime = 100; //experimenting with accelerating gameplay with waves
 const blinkTime = 1000;
 let maxLives = 3; //now can gain?
 let swordScore = 100; //allowing for gains with upgrades (also yes more items coming)
@@ -19,10 +19,11 @@ let playerSize = 16;
 let playerX = playerY = hitsTaken = 0;
 let goingUp = goingDown = goingLeft = goingRight = false;
 let tutorialText = "Move your character with WASD.  Attack with your L key.  Go!"
-const setWaves = ["0200", "0001", "11011", "11121", "12001001" , "112112121" , "211211111"]; //will make a text parser for this soon, what a win for mutable arrays lol
+const setWaves = ["0000", "0001", "11011", "11121", "12001001" , "112112121" , "211211111", "12301301" , "312012011" , "333000333"]; //will make a text parser for this soon, what a win for mutable arrays lol
 let waves = setWaves;
 let paused = endScreen = endCool = false;
 let webArray = [];
+let waterArray = [];
 
 if (!localStorage.getItem("highscore")) localStorage.setItem("highscore", "0")
 
@@ -305,6 +306,7 @@ function tutorialSplash(){
         
     document.addEventListener("keypress", e => {
         if(gameStarted) return;
+        if(!splashed) return;
         if (e.code == "Space") {
             e.preventDefault();
             drySplash();
@@ -313,7 +315,7 @@ function tutorialSplash(){
 }
 
 function createGame(){
-    wave = Number(localStorage.getItem("savewave"))
+    if(localStorage.getItem("savewave")) wave = Number(localStorage.getItem("savewave")) 
     score = Number(localStorage.getItem("savescore")) //gonna make this an option
     window.scrollTo({top: 0, behavior: "instant"})
     gameStarted = true;
@@ -387,8 +389,6 @@ function endGame() {
     resetWaves();
     setTimeout(() => { //helps with late regs
         hitsTaken = 0;
-        localStorage.setItem("savewave", wave);
-        localStorage.setItem("savescore", score);
     }, 1000)
 } 
 
@@ -404,6 +404,8 @@ function displayPauseScreen(){ //handles end as well
     document.body.append(elem);
     if(endScreen) {
         if(Number(localStorage.getItem("highscore")) < score) localStorage.setItem("highscore", score.toString())
+        localStorage.setItem("savewave", 1);
+        localStorage.setItem("savescore", 0);
         console.log("highscore is " + localStorage.getItem("highscore"));
         elem.textContent = "GAME OVER."
         let elem2 = document.createElement("p");
@@ -507,8 +509,39 @@ function moveBugs(){
             }
             let angle = smallList[i][2];
             let speed = smallList[i][1] * bugMovement;
-            web.style.top = Number(web.style.top.substring(0, web.style.top.length-2)) + speed * Math.sin(angle) + "px";
-            web.style.left = Number(web.style.left.substring(0, web.style.left.length-2)) + speed * Math.cos(angle) + "px";
+            web.style.top = parseInt(web.style.top) + speed * Math.sin(angle) + "px";
+            web.style.left = parseInt(web.style.left) + speed * Math.cos(angle) + "px";
+        }
+    }   
+
+    smallList = waterArray;
+    if(smallList.length > 0){
+        for (i = 0; i < smallList.length; i++){ 
+            smallList[i][1]--;
+            let waterbug = smallList[i][0];
+            let speed = 0;
+            if(smallList[i][1] <= 0){
+                if (smallList[i][1] > -20) lookAtPlayer(waterbug);
+                waterbug.src = "images/enemies/waterbug.png"
+            } else {
+                speed = smallList[i][1] * bugMovement;
+            }
+            if(smallList[i][1] == -20){
+                let currentX = waterbug.offsetLeft;
+                let currentY = waterbug.offsetTop;
+                smallList[i][2] = Math.atan2(playerY - currentY, (playerX - currentX));
+            }
+            if(smallList[i][1] < -20){
+                waterbug.src = "images/enemies/swimframes/wb" + (smallList[i][1] + 26) + ".png"
+                if (smallList[i][1] < -25) {
+                    waterbug.src = "images/enemies/swimframes/wb5.png"  
+                    smallList[i][1] = 11;
+                }
+            }
+            
+            let angle = smallList[i][2];
+            waterbug.style.top = parseInt(waterbug.style.top) + speed * Math.sin(angle) + "px";
+            waterbug.style.left = parseInt(waterbug.style.left) + speed * Math.cos(angle) + "px";
         }
     }   
 }
@@ -533,7 +566,7 @@ function updateSwordPos(){
         elem.classList.add("swordright");
         elem.style.left = playerX+ playerSize + "px";
         elem.style.top = playerY + "px";
-    } else if(goingLeft){
+    } else if(goingLeft){ //left + right first makes it so left / right graphics are prioritized in diagonals 
         elem.classList.remove(...elem.classList);
         elem.classList.add("swordleft");
         elem.style.left = playerX - playerSize + "px";
@@ -554,7 +587,7 @@ function updateSwordPos(){
 
 function swingSword(){
     let currentSwingTime = Date.now();
-    if (currentSwingTime - lastSwingTime < swingCooldown) return;
+    if (currentSwingTime - lastSwingTime < swingCooldown || paused) return;
     let elem = document.getElementById("sword")
     totalHit = 0;
     randomAudioPitch("audio/swordswing.mp3")
@@ -601,11 +634,7 @@ function checkSwordCollision(){
     let sword = document.getElementById("sword");
     for(let i = 0; i < bugList.length; i++) {
         if (doElsCollide(bugList[i], sword)) {
-            totalHit++;
-            bugList[i].remove();
-            processWave(1);
-            let audio = new Audio('audio/swordhit.mp3');
-            audio.play();
+            standardHit(bugList[i])
         }
     } //add diff sounds for combo kills, detach from individual hits?
     bugList = document.getElementsByClassName("armorbug");
@@ -623,18 +652,28 @@ function checkSwordCollision(){
     bugList = document.getElementsByClassName("spider");
     for(let i = 0; i < bugList.length; i++) {
         if (doElsCollide(bugList[i], sword)) {
-            totalHit++;
-            bugList[i].remove();
-            processWave(1);
-            let audio = new Audio('audio/swordhit.mp3');
-            audio.play();
+            standardHit(bugList[i])
+        }
+    }
+    bugList = document.getElementsByClassName("waterbug");
+    for(let i = 0; i < bugList.length; i++) {
+        if (doElsCollide(bugList[i], sword)) {
+            standardHit(bugList[i])
         }
     }
 }
 
+function standardHit(bug) {
+    totalHit++;
+    bug.remove();
+    processWave(1);
+    let audio = new Audio('audio/swordhit.mp3');
+    audio.play();
+}
+
 function spawnNewBug(type){
     let bugType = matchBug(type);
-    elem = document.createElement("img");
+    let elem = document.createElement("img");
     elem.style.position = "absolute";
     elem.style.imageRendering = "pixelated";
     elem.style.zIndex = "1001"; 
@@ -648,12 +687,13 @@ function spawnNewBug(type){
     } else { //left or right
         elem.style.top = (window.innerHeight/10)*(Math.random() * 10) + "px";
         if (Math.random() < .5) elem.style.left = "0px";
-        else elem.style.right = "0px";
+        else elem.style.left = (window.innerWidth - playerSize) + "px"; //need to keep left for waterbug logic
     }
     let bugSize = playerSize + Math.trunc(Math.random() * (playerSize/2))
     elem.setAttribute("width", bugSize);
     if (bugType === "spider") elem.setAttribute("width", 2*bugSize);
-    document.getElementById("body").prepend(elem.cloneNode(true))
+    if (bugType === "waterbug") setupNewWaterbug(elem);
+    document.getElementById("body").prepend(elem)
 }
 
 function matchBug(type){
@@ -664,6 +704,8 @@ function matchBug(type){
             return "armorbug"
         case 2: 
             return "spider"
+        case 3: 
+            return "waterbug"
     }
 }
 
@@ -711,7 +753,7 @@ function lookAtPlayer(elem){
     let position = elem.getBoundingClientRect();
     let currentX = position.left;
     let currentY = position.top;
-    let angle = Math.atan2(playerX - currentX, - (playerY - currentY) )*(180 / Math.PI);      
+    let angle = Math.atan2(playerX - currentX, - (playerY - currentY))*(180 / Math.PI);      
     elem.style.transform = "rotate(" + angle + "deg)";  
 }
 
@@ -754,6 +796,11 @@ function fireWeb(angle, spiderElem){ //make the web go in some array. basically 
     document.body.append(elem);
 
     webArray.push([elem, 9, angle]);
+}
+
+
+function setupNewWaterbug(bug){  
+    waterArray.push([bug, 0, 0])
 }
 
 function checkPlayerCollision(){
@@ -913,7 +960,7 @@ function processWave(num){
         displayCombo(1, "gameover")
         return;
     }
-    if (waves[wave - 1].length == 0 && document.getElementsByClassName("enemy").length == 0) {
+    if (waves[wave - 1].length == 0 && document.getElementsByClassName("enemy").length == 0 && !endScreen) {
         wave++;
         localStorage.setItem("savewave", wave);
         localStorage.setItem("savescore", score);
