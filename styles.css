@@ -18,6 +18,15 @@ body {
     justify-content: center;
 }
 
+@font-face {
+    font-family: "Pixelify Sans"; /*modified 5 & H for visibility*/
+    font-style: normal;
+    font-weight: 400;
+    src: url(fonts/PixelifySans-Regular_Altered.otf) format("opentype");
+    src: url(fonts/PixelifySans-Regular_Altered.ttf) format("truetype");
+    src: url(fonts/PixelifySans-Regular_Altered.woff) format("woff");
+}
+
 .dimmed{
     color:#9c9c9c;
 }

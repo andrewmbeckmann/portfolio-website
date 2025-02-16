@@ -20,7 +20,7 @@ let goingUp = goingDown = goingLeft = goingRight = false;
 let tutorialText = "Move your character with WASD.  Attack with your L key.  Go!"
 const setWaves = ["0200", "0001", "11011", "11121", "12001001" , "112112121" , "211211111"]; //will make a text parser for this soon, what a win for mutable arrays lol
 let waves = setWaves;
-let paused = endScreen = false;
+let paused = endScreen = endCool = false;
 let webArray = [];
 
 if (!localStorage.getItem("highscore")) localStorage.setItem("highscore", "0")
@@ -95,6 +95,8 @@ window.addEventListener("keyup", e => {
     if(keyArray.join('') === code && !gameStarted){ //will add some goofy cheat code i think, current here as testing tool
         createGame();
     }
+
+    if(endScreen && endCool) unPause();
 
     lastKeyTime = currentKeyTime;
 })
@@ -359,7 +361,7 @@ function createGame(){
 }
 
 function endGame() {
-    paused = endScreen = false;
+    paused = endScreen = endCool = false;
     score = 0;
     gameStarted = computerClicked = splashed = false;
     splash = document.getElementById("splash")
@@ -394,6 +396,7 @@ function displayPauseScreen(){ //handles end as well
     if(paused) return;
     document.getElementById("splash").style.zIndex = "2000"
     document.getElementById("splash").style.opacity = ".9"
+    document.getElementById("score").style.zIndex = "2001"
     let elem = document.createElement("p");
     elem.id = "pausetext";
     elem.style.fontSize = playerSize * 2 + "px"
@@ -413,8 +416,11 @@ function displayPauseScreen(){ //handles end as well
         elem3.classList.add("blinking")
         elem3.style.position = "fixed"
         elem3.style.bottom = "50px"
-        elem.appendChild(elem3)
-        elem3.style.left = (window.innerWidth / 2) - (elem3.offsetWidth / 2) + "px";
+        setTimeout(()=> {
+            endCool = true;
+            elem.appendChild(elem3)
+            elem3.style.left = (window.innerWidth / 2) - (elem3.offsetWidth / 2) + "px";
+        }, 1000) //need to be dead for 1 sec to restart
     }
     elem.style.left = (window.innerWidth / 2) - (elem.offsetWidth / 2) + "px";
     paused = true;
@@ -422,11 +428,12 @@ function displayPauseScreen(){ //handles end as well
 
 function unPause(){
     document.getElementById("splash").style.zIndex = "999"
+    document.getElementById("score").style.zIndex = "1000"
     document.getElementById("splash").style.opacity = ".7"
     document.getElementById("pausetext").remove();
     setTimeout(() => {
         paused = false;
-    }, 800)
+    }, 600)
     if(endScreen) endGame();
 }
 
