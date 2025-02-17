@@ -13,7 +13,7 @@ let swordScore = 100; //allowing for gains with upgrades (also yes more items co
 let score = killScore = totalHit = 0;
 let wave = 1;
 let movementIncrement = 3;
-let slowFrames = 0;
+let slowFrames = swordFrames = 0;
 let bugMovement = 2;
 let playerSize = 16;
 let playerX = playerY = hitsTaken = 0;
@@ -21,7 +21,7 @@ let goingUp = goingDown = goingLeft = goingRight = false;
 let tutorialText = "Move your character with WASD.  Attack with your L key.  Go!"
 const setWaves = ["0000", "0001", "11011", "11121", "12001001" , "112112121" , "211211111", "12301301" , "312012011" , "333000333"]; //will make a text parser for this soon, what a win for mutable arrays lol
 let waves = setWaves;
-let paused = endScreen = endCool = false;
+let paused = endScreen = endCool = powerSword = false;
 let webArray = [];
 let waterArray = [];
 
@@ -94,8 +94,8 @@ window.addEventListener("keyup", e => {
     keyArray.push(key);
 
     if(keyArray.length > 4) keyArray = keyArray.slice(keyArray.length - 4);
-    if(keyArray.join('') === code && !gameStarted){ //will add some goofy cheat code i think, current here as testing tool
-        createGame();
+    if(keyArray.join('') === code && gameStarted){ //will add some goofy cheat code i think, current here as testing tool
+        powerSword = true;
     }
 
     if(endScreen && endCool) unPause();
@@ -253,7 +253,6 @@ function tutorialSplash(){
                 elem2.style.top = (screen.availHeight / 4) +"px"
                 break;  
         }
-        // setTimeout(resetPlayer(), 250)
     }
     
     skiptext.id = "skiptext";
@@ -381,6 +380,7 @@ function endGame() {
     bugSpray("spider");
     bugSpray("armorbug");
     bugSpray("web");
+    bugSpray("waterbug");
     document.getElementById("score").remove();
     if(document.getElementById("heart")) document.getElementById("heart").remove();
     document.getElementById("wave").remove();
@@ -400,6 +400,8 @@ function displayPauseScreen(){ //handles end as well
     let elem = document.createElement("p");
     elem.id = "pausetext";
     elem.style.fontSize = playerSize * 2 + "px"
+    elem.style.transition = "0.3s"
+    elem.style.opacity = "0"
     elem.textContent = "Your game is paused. Press esc again to unpause."
     document.body.append(elem);
     if(endScreen) {
@@ -426,6 +428,7 @@ function displayPauseScreen(){ //handles end as well
     }
     elem.style.left = (window.innerWidth / 2) - (elem.offsetWidth / 2) + "px";
     paused = true;
+    elem.style.opacity = "1"
 }
 
 function unPause(){
@@ -543,7 +546,28 @@ function moveBugs(){
             waterbug.style.top = parseInt(waterbug.style.top) + speed * Math.sin(angle) + "px";
             waterbug.style.left = parseInt(waterbug.style.left) + speed * Math.cos(angle) + "px";
         }
-    }   
+    }
+    
+    let swordPower = document.getElementById("swordpower")
+    if (swordPower && swordFrames > 0) {
+        swordPower.src = "images/powerframes/swordpower" + (5 - swordFrames) + ".png" 
+        moveSwordPower(swordPower);
+        checkSwordPowerCollision();
+        setTimeout(() => {
+            if(!paused) moveSwordPower(swordPower); //fillframe, not checkin coll
+        }, frameTime/2)
+        if(swordFrames == 1) setTimeout(() => {
+            swordPower.remove();
+        }, frameTime)
+        swordFrames--;
+    }
+}
+
+function moveSwordPower(s){
+    if (s.classList.contains("swordright"))  s.style.left = parseInt(s.style.left) + playerSize/2 + "px" ;
+    else if (s.classList.contains("swordup"))  s.style.top = parseInt(s.style.top) - playerSize/2 + "px" ;
+    else if (s.classList.contains("sworddown"))  s.style.top = parseInt(s.style.top) + playerSize/2 + "px" ;
+    else s.style.left = parseInt(s.style.left) - playerSize/2 + "px" ;
 }
 
 function adjustSpriteSize(){
@@ -593,6 +617,7 @@ function swingSword(){
     randomAudioPitch("audio/swordswing.mp3")
 
     elem.setAttribute("src", "images/swingframes/1.png")
+    if (powerSword) fireSwordPower();
     setTimeout(() => {
         elem.setAttribute("src", "images/swingframes/2.png")
     }, frameTime)
@@ -661,6 +686,41 @@ function checkSwordCollision(){
             standardHit(bugList[i])
         }
     }
+}
+
+function checkSwordPowerCollision(){
+    let bugList = document.getElementsByClassName("bug");
+    let sword = document.getElementById("swordpower");
+    for(let i = 0; i < bugList.length; i++) {
+        if (doElsCollide(bugList[i], sword)) {
+            standardHit(bugList[i])
+        }
+    } //add diff sounds for combo kills, detach from individual hits?
+    bugList = document.getElementsByClassName("armorbug");
+    for(let i = 0; i < bugList.length; i++) {
+        if (doElsCollide(bugList[i], sword)) { //dont up hit because no kill, refactor?
+            let tempRef = bugList[i];
+            setTimeout(()=> { //need invuln through rest of sword swing
+                tempRef.classList.add("bug"); //dont remove from armorbug, might use for tracking data
+            }, 200)
+            bugList[i].src = ("images/enemies/bug.png"); 
+            let audio = new Audio('audio/armorhit.mp3');
+            audio.play();
+        }
+    }
+    bugList = document.getElementsByClassName("spider");
+    for(let i = 0; i < bugList.length; i++) {
+        if (doElsCollide(bugList[i], sword)) {
+            standardHit(bugList[i])
+        }
+    }
+    bugList = document.getElementsByClassName("waterbug");
+    for(let i = 0; i < bugList.length; i++) {
+        if (doElsCollide(bugList[i], sword)) {
+            standardHit(bugList[i])
+        }
+    }
+    if(totalHit > 0) swordFrames = 1;
 }
 
 function standardHit(bug) {
@@ -798,6 +858,23 @@ function fireWeb(angle, spiderElem){ //make the web go in some array. basically 
     webArray.push([elem, 9, angle]);
 }
 
+function fireSwordPower(){
+    if(document.getElementById("swordpower")) document.getElementById("swordpower").remove();
+    swordFrames = 4;
+    let sword = document.getElementById("sword")
+    let elem = document.createElement("img")
+    elem.style.position = "fixed"
+    elem.style.top = sword.style.top
+    elem.style.left = sword.style.left
+    elem.id = "swordpower"
+    elem.style.zIndex = "1000"
+    elem.src = "images/powerframes/swordpower4.png";
+    elem.style.width = playerSize + "px";
+    if(sword.classList.contains("swordright")) elem.classList.add("swordright")
+    else if(sword.classList.contains("swordup")) elem.classList.add("swordup")
+    else if(sword.classList.contains("sworddown")) elem.classList.add("sworddown")
+    document.body.append(elem)
+}
 
 function setupNewWaterbug(bug){  
     waterArray.push([bug, 0, 0])
