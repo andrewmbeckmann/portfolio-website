@@ -11,17 +11,17 @@ const blinkTime = 1000;
 let maxLives = 3; //now can gain?
 let swordScore = 100; //allowing for gains with upgrades (also yes more items coming)
 let score = killScore = totalHit = 0;
-let wave = 1;
+let wave = audioScale = savedVolume = 1;
 let movementIncrement = 3;
-let slowFrames = swordFrames = 0;
+let slowFrames = swordFrames = holdFrames = 0;
 let bugMovement = 2;
 let playerSize = 16;
 let playerX = playerY = hitsTaken = 0;
 let goingUp = goingDown = goingLeft = goingRight = false;
 let tutorialText = "Move your character with WASD.  Attack with your L key.  Go!"
 const setWaves = ["0000", "0001", "11011", "11121", "12001001" , "112112121" , "211211111", "12301301" , "312012011" , "333000333"]; //will make a text parser for this soon, what a win for mutable arrays lol
-let waves = setWaves;
-let paused = endScreen = endCool = powerSword = false;
+let waves = structuredClone(setWaves);
+let paused = endScreen = endCool = powerSword = dead = false;
 let webArray = [];
 let waterArray = [];
 
@@ -33,7 +33,7 @@ document.getElementById("darklight").addEventListener("click", () => {
     if (safetySwitch) return;
     let currentSwitchHit = Date.now();
     let audio = new Audio('audio/switchsound.mp3');
-    audio.volume = .7;
+    audio.volume = .7 * audioScale; //should i scale this? not part of game
     audio.play();
     if(!isLight) {
         isLight = true;
@@ -64,7 +64,11 @@ window.addEventListener("keyup", e => {
     let key = e.key.toLowerCase();
     let currentKeyTime = Date.now();
 
-    if (key === "escape" && paused) unPause();
+    if (key === "escape" && paused) {
+        e.preventDefault();
+        unPause();
+        if(e.altKey) endGame();
+    }
     if (key === "escape" && gameStarted && !paused) displayPauseScreen();
     if (gameStarted) {
         switch (key) {
@@ -123,6 +127,17 @@ window.addEventListener("keydown", e =>{
                 goingRight = true;
                 goingLeft = false;
                 break;
+        }
+    }
+    if (key === "escape" && paused){
+        for(let i = 0; i < 10; i++){
+            setTimeout(() => {
+                holdFrames++
+                if(holdFrames > 9 && paused) {
+                    unPause();
+                    endGame(); 
+                } 
+            }, i*frameTime)
         }
     }
 })
@@ -343,7 +358,7 @@ function createGame(){
     displayScore();
     displayWave();
 
-    processWave(3);
+    processWave(3, false);
 
     elem = document.createElement("img");
     elem.setAttribute("src", "images/swordbase.png");
@@ -397,6 +412,8 @@ function displayPauseScreen(){ //handles end as well
     document.getElementById("splash").style.zIndex = "2000"
     document.getElementById("splash").style.opacity = ".9"
     document.getElementById("score").style.zIndex = "2001"
+    document.getElementById("wave").style.zIndex = "2001"
+    displayVolumeSlider(true)
     let elem = document.createElement("p");
     elem.id = "pausetext";
     elem.style.fontSize = playerSize * 2 + "px"
@@ -425,6 +442,12 @@ function displayPauseScreen(){ //handles end as well
             elem.appendChild(elem3)
             elem3.style.left = (window.innerWidth / 2) - (elem3.offsetWidth / 2) + "px";
         }, 1000) //need to be dead for 1 sec to restart
+    } else {
+        let elem2 = document.createElement("p");
+        elem2.textContent = "(or hold esc to exit)";
+        elem.appendChild(elem2)
+        elem2.style.position = "relative";
+        elem2.style.marginTop = playerSize + "px";
     }
     elem.style.left = (window.innerWidth / 2) - (elem.offsetWidth / 2) + "px";
     paused = true;
@@ -436,14 +459,61 @@ function unPause(){
     document.getElementById("score").style.zIndex = "1000"
     document.getElementById("splash").style.opacity = ".7"
     document.getElementById("pausetext").remove();
+    displayVolumeSlider(false)
     setTimeout(() => {
         paused = false;
     }, 600)
     if(endScreen) endGame();
 }
 
+function displayVolumeSlider(toggle){
+    if(!toggle) {
+        document.getElementById("volume").remove();
+        document.getElementById("slider").remove();
+        return;
+    }
+    let elem = document.createElement("img");
+    elem.id = "volume";
+    elem.src = "images/volume/volume" + Math.ceil(audioScale * 3) + ".png";
+    elem.style.width = playerSize * 2 + "px"
+    elem.style.position = "fixed"
+    elem.style.imageRendering = "pixelated"
+    elem.style.top = "50px"
+    elem.style.left = "50px"
+    elem.style.zIndex = "2000"
+    document.body.append(elem)
+    let elem2 = document.createElement("input")
+    elem2.type = "range"
+    elem2.min = "0"
+    elem2.max = "1"
+    elem2.step = ".1"
+    elem2.value = audioScale;
+    elem2.addEventListener("input", () => {
+        audioScale = elem2.value;
+        elem.src = "images/volume/volume" + Math.ceil(audioScale * 3) + ".png";
+    })
+    elem.addEventListener("click", muteToggle)
+    elem2.style.position = "fixed"
+    elem2.classList.add("slider")
+    elem2.style.left = 70 + (playerSize * 2) + "px"
+    elem2.style.top = 50 + .8*playerSize + "px"
+    elem2.id = "slider"
+    elem2.style.zIndex = "2000"
+    document.body.append(elem2)
+
+    function muteToggle(){
+        if(!audioScale) audioScale = savedVolume;
+        else {
+            savedVolume = audioScale;
+            audioScale = 0;
+        }
+        elem2.value = audioScale;
+        elem.src = "images/volume/volume" + Math.ceil(audioScale * 3) + ".png";
+    }
+}
+
 function resetWaves(){
-    waves = setWaves;
+    waves = structuredClone(setWaves);
     wave = 1;
 }
 
@@ -651,10 +721,12 @@ function randomAudioPitch(audioName){
     let pitchShift = (Math.random() * .2 - .1); //avoids non-finite bugs when defined first
     audio.playbackRate = 1 + pitchShift;
     audio.preservesPitch = false;
+    audio.volume *= audioScale;
     audio.play();
 }
 
 function checkSwordCollision(){
+    if(endScreen) return;
     let bugList = document.getElementsByClassName("bug");
     let sword = document.getElementById("sword");
     for(let i = 0; i < bugList.length; i++) {
@@ -671,6 +743,7 @@ function checkSwordCollision(){
             }, 200)
             bugList[i].src = ("images/enemies/bug.png"); 
             let audio = new Audio('audio/armorhit.mp3');
+            audio.volume *= audioScale;
             audio.play();
         }
     }
@@ -705,6 +778,7 @@ function checkSwordPowerCollision(){
             }, 200)
             bugList[i].src = ("images/enemies/bug.png"); 
             let audio = new Audio('audio/armorhit.mp3');
+            audio.volume *= audioScale;
             audio.play();
         }
     }
@@ -726,8 +800,9 @@ function checkSwordPowerCollision(){
 function standardHit(bug) {
     totalHit++;
     bug.remove();
-    processWave(1);
+    processWave(1, true);
     let audio = new Audio('audio/swordhit.mp3');
+    audio.volume *= audioScale;
     audio.play();
 }
 
@@ -895,6 +970,13 @@ function checkPlayerCollision(){
                 processDamage();
             }
         }
+        bugList = document.getElementsByClassName("waterbug");
+        for(let i = 0; i < bugList.length; i++) {
+            if (bugList[i].classList.contains("bug")) break;
+            if (doElsCollide(bugList[i], player)) {
+                processDamage();
+            }
+        }
         bugList = document.getElementsByClassName("web");
         for(let i = 0; i < bugList.length; i++) {
             if (doElsCollide(bugList[i], player)) {
@@ -995,7 +1077,6 @@ function displayCombo(combo, weapon){ //need to handle multiple combos, fade old
     elem.classList.add("scoreelem")
     document.body.append(elem)
     elem.style.transition = "3s"
-    // elem.style.opacity = "0"
     setTimeout(() => {
         elem.remove();
     }, 3000) 
@@ -1032,23 +1113,23 @@ function processHeart() {
     displayScore();
 }
 
-function processWave(num){
+function processWave(num, isPostAttack){
     if(waves[wave-1].length == 0 && waves.length == wave) {
         displayCombo(1, "gameover")
         return;
     }
-    if (waves[wave - 1].length == 0 && document.getElementsByClassName("enemy").length == 0 && !endScreen) {
-        wave++;
-        localStorage.setItem("savewave", wave);
-        localStorage.setItem("savescore", score);
-        processWave(3);
-    };
     for(let i = 0; i < num; i++){
         if(waves[wave - 1].length == 0) break; //designed to not allow overflow across waves. 
         let char = waves[wave - 1].charAt(0);
-        setTimeout(spawnNewBug(Number(char)))
+        spawnNewBug(Number(char))
         waves[wave - 1] = waves[wave - 1].substring(1);
     } 
+    if (isPostAttack && waves[wave - 1].length == 0 && document.getElementsByClassName("enemy").length == 0 && !endScreen) {
+        wave++;
+        localStorage.setItem("savewave", wave);
+        localStorage.setItem("savescore", score);
+        processWave(3, false);
+    };
     displayWave();
 }
 
@@ -1059,6 +1140,7 @@ function processDamage(){
     displayHealth();
     if (hitsTaken >= maxLives) {
         let audio = new Audio('audio/gameover.mp3'); 
+        audio.volume *= audioScale;
         audio.play();
         endScreen = true;
         displayPauseScreen();
@@ -1066,7 +1148,7 @@ function processDamage(){
     }
     let player = document.getElementById("player");
     let audio = new Audio('audio/hurt.mp3'); 
-    audio.volume = .3;
+    audio.volume = .3 * audioScale;
     audio.play();
     function hurtAnimation(){
         if (Date.now() - currentHurtTime > frameTime * 10) return;

@@ -419,6 +419,30 @@ body.light button{
     }
 }
 
+.slider {
+    appearance: none;
+    width: 200px;
+    height: 5px;
+    background: var(--textcolor);
+    outline: none;
+  }
+  
+  .slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 5px;
+    height: 25px;
+    background: var(--textcolor);
+    cursor: pointer;
+  }
+  
+  .slider::-moz-range-thumb {
+    width: 5px;
+    height: 25px;
+    background: var(--textcolor);
+    cursor: pointer;
+  }
+
 .heart { /*applies to hud hearts, not the extra hearts in-game*/
     position: fixed;
     z-index: 1000;
