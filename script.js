@@ -408,6 +408,7 @@ function endGame() {
 } 
 
 function displayPauseScreen(){ //handles end as well
+    holdFrames = 0;
     if(paused) return;
     document.getElementById("splash").style.zIndex = "2000"
     document.getElementById("splash").style.opacity = ".9"
