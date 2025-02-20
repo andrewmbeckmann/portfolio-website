@@ -19,13 +19,15 @@ let playerSize = 16;
 let playerX = playerY = hitsTaken = 0;
 let goingUp = goingDown = goingLeft = goingRight = false;
 let tutorialText = "Move your character with WASD.  Attack with your L key.  Go!"
-const setWaves = ["0000", "0001", "11011", "11121", "12001001" , "112112121" , "211211111", "12301301" , "312012011" , "333000333"]; //will make a text parser for this soon, what a win for mutable arrays lol
+const setWaves = ["044400", "0001", "11011", "11121", "12001001" , "112112121" , "211211111", "12301301" , "312012011" , "333000333"]; //will make a text parser for this soon, what a win for mutable arrays lol
 let waves = structuredClone(setWaves);
 let paused = endScreen = endCool = powerSword = dead = false;
 let webArray = [];
 let waterArray = [];
+let fireArray = [];
 
 if (!localStorage.getItem("highscore")) localStorage.setItem("highscore", "0")
+audioScale = localStorage.getItem("audio")
 
 animateHero();
 
@@ -396,6 +398,7 @@ function endGame() {
     bugSpray("armorbug");
     bugSpray("web");
     bugSpray("waterbug");
+    bugSpray("fireant");
     document.getElementById("score").remove();
     if(document.getElementById("heart")) document.getElementById("heart").remove();
     document.getElementById("wave").remove();
@@ -492,6 +495,7 @@ function displayVolumeSlider(toggle){
     elem2.addEventListener("input", () => {
         audioScale = elem2.value;
         elem.src = "images/volume/volume" + Math.ceil(audioScale * 3) + ".png";
+        localStorage.setItem("volume", audioScale);
     })
     elem.addEventListener("click", muteToggle)
     elem2.style.position = "fixed"
@@ -509,6 +513,7 @@ function displayVolumeSlider(toggle){
             audioScale = 0;
         }
         elem2.value = audioScale;
+        localStorage.setItem("volume", audioScale);
         elem.src = "images/volume/volume" + Math.ceil(audioScale * 3) + ".png";
     }
 }
@@ -618,6 +623,35 @@ function moveBugs(){
             waterbug.style.left = parseInt(waterbug.style.left) + speed * Math.cos(angle) + "px";
         }
     }
+     
+    smallList = fireArray; //will make each an array, have ones behind follow the leader LOL if one dies its reassigned
+    if(smallList){
+        for (i = 0; i < smallList.length; i++) {
+            while(smallList[i].length > 0 && !smallList[i][smallList[i].length - 1].parentNode) {
+                smallList[i].splice([smallList[i].length - 1]) 
+            }
+            if (smallList[i].length <= 0) {
+                continue;
+            }
+            let fireAnt = smallList[i][smallList[i].length - 1];
+            lookAtPlayer(fireAnt)
+            let angle = Math.atan2(playerY - fireAnt.offsetTop, (playerX - fireAnt.offsetLeft));
+            let speed = bugMovement + 1;
+            let newTop = parseInt(fireAnt.style.top) + speed * Math.sin(angle) + "px";
+            let newLeft = parseInt(fireAnt.style.left) + speed * Math.cos(angle) + "px";
+            fireAnt.style.top = newTop;
+            fireAnt.style.left = newLeft;
+            for(let j = smallList[i].length - 2; j > -1; j--) {
+                let elem = smallList[i][j];
+                let rotate = smallList[i][j + 1].style.transform
+                setTimeout(()=> {
+                    elem.style.top = newTop;
+                    elem.style.left = newLeft;
+                    elem.style.transform = rotate;
+                }, 600*j)
+            }
+        }
+    }
     
     let swordPower = document.getElementById("swordpower")
     if (swordPower && swordFrames > 0) {
@@ -687,19 +721,13 @@ function swingSword(){
     totalHit = 0;
     randomAudioPitch("audio/swordswing.mp3")
 
-    elem.setAttribute("src", "images/swingframes/1.png")
     if (powerSword) fireSwordPower();
-    setTimeout(() => {
-        elem.setAttribute("src", "images/swingframes/2.png")
-    }, frameTime)
-    setTimeout(() => {
-        elem.setAttribute("src", "images/swingframes/3.png")
-        checkSwordCollision();
-    }, frameTime*2)
-    setTimeout(() => {
-        elem.setAttribute("src", "images/swingframes/4.png")
-        checkSwordCollision();
-    }, frameTime*3)
+    for (let i = 0; i < 4; i++) {
+        setTimeout(() => {
+            elem.src = "images/swingframes/" + (i+1) + ".png"
+            if(i > 1) checkSwordCollision()
+        }, frameTime * i)
+    }
     setTimeout(() => {
         elem.setAttribute("src", "images/swordbase.png")
         checkSwordCollision();
@@ -708,7 +736,7 @@ function swingSword(){
             killScore *= (1.25 ** totalHit)
             displayCombo(totalHit, "Sword")
         }
-        if(totalHit > 0 && Math.random() * 100 * ((1.25 ** totalHit)) > 90) spawnHeart();
+        if(totalHit > 0 && Math.random() * ((1.25 ** totalHit)) > .9) spawnHeart();
         score += Math.floor(killScore);
         if (gameStarted) displayScore();
     }, frameTime*4)
@@ -755,6 +783,12 @@ function checkSwordCollision(){
         }
     }
     bugList = document.getElementsByClassName("waterbug");
+    for(let i = 0; i < bugList.length; i++) {
+        if (doElsCollide(bugList[i], sword)) {
+            standardHit(bugList[i])
+        }
+    }
+    bugList = document.getElementsByClassName("fireant");
     for(let i = 0; i < bugList.length; i++) {
         if (doElsCollide(bugList[i], sword)) {
             standardHit(bugList[i])
@@ -829,6 +863,7 @@ function spawnNewBug(type){
     elem.setAttribute("width", bugSize);
     if (bugType === "spider") elem.setAttribute("width", 2*bugSize);
     if (bugType === "waterbug") setupNewWaterbug(elem);
+    if (bugType === "fireant") {setupNewFireant(elem.cloneNode(true)); return;}
     document.getElementById("body").prepend(elem)
 }
 
@@ -842,6 +877,8 @@ function matchBug(type){
             return "spider"
         case 3: 
             return "waterbug"
+        case 4: 
+            return "fireant"
     }
 }
 
@@ -917,7 +954,7 @@ function rangeAcquired(elem){
     }, 3000);
 }
 
-function fireWeb(angle, spiderElem){ //make the web go in some array. basically it'll be the elem and then a value that lets the movement method know speed (maybe like 8 starting, then we use same speed calc. we also save angle for same purpose. once 0 & neg, no move. once 90x frametime, kill it. :) 
+function fireWeb(angle, spiderElem){  
     let startingX = spiderElem.offsetLeft;
     let startingY = spiderElem.offsetTop;
     let elem = document.createElement("img")
@@ -956,6 +993,16 @@ function setupNewWaterbug(bug){
     waterArray.push([bug, 0, 0])
 }
 
+function setupNewFireant(bug){
+    fireArray.unshift([bug])
+    let extraAnts = 2 + Math.floor((Math.random() * 3))
+    for (let i = 0; i < extraAnts; i++){
+        let elem = bug.cloneNode(true)
+        document.body.append(elem)
+        fireArray[0].push(elem)
+    }
+}
+
 function checkPlayerCollision(){
     let bugList = document.getElementsByClassName("bug");
     let player = document.getElementById("player");
@@ -972,6 +1019,13 @@ function checkPlayerCollision(){
             }
         }
         bugList = document.getElementsByClassName("waterbug");
+        for(let i = 0; i < bugList.length; i++) {
+            if (bugList[i].classList.contains("bug")) break;
+            if (doElsCollide(bugList[i], player)) {
+                processDamage();
+            }
+        }
+        bugList = document.getElementsByClassName("fireant");
         for(let i = 0; i < bugList.length; i++) {
             if (bugList[i].classList.contains("bug")) break;
             if (doElsCollide(bugList[i], player)) {
@@ -1125,6 +1179,11 @@ function processWave(num, isPostAttack){
         spawnNewBug(Number(char))
         waves[wave - 1] = waves[wave - 1].substring(1);
     } 
+    // if(waves[wave-1].length == 0 && waves.length == wave && document.getElementsByClassName("enemy").length == 0 && !document.getElementById("heart")) {
+    //     displayCombo(1, "gameover")
+    //     endGame();
+    //     return;
+    // }
     if (isPostAttack && waves[wave - 1].length == 0 && document.getElementsByClassName("enemy").length == 0 && !endScreen) {
         wave++;
         localStorage.setItem("savewave", wave);
