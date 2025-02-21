@@ -19,7 +19,7 @@ let playerSize = 16;
 let playerX = playerY = hitsTaken = 0;
 let goingUp = goingDown = goingLeft = goingRight = false;
 let tutorialText = "Move your character with WASD.  Attack with your L key.  Go!"
-const setWaves = ["044400", "0001", "11011", "11121", "12001001" , "112112121" , "211211111", "12301301" , "312012011" , "333000333"]; //will make a text parser for this soon, what a win for mutable arrays lol
+const setWaves = ["0000", "0001", "11011", "11121", "12001001" , "112112121" , "211211111", "12301301" , "312012011" , "333000333", "012344321" , "442213131313", "433321111" , "3232441111" , "41414141121111211"]; //will make a text parser for this soon, what a win for mutable arrays lol
 let waves = structuredClone(setWaves);
 let paused = endScreen = endCool = powerSword = dead = false;
 let webArray = [];
@@ -27,7 +27,7 @@ let waterArray = [];
 let fireArray = [];
 
 if (!localStorage.getItem("highscore")) localStorage.setItem("highscore", "0")
-audioScale = localStorage.getItem("audio")
+audioScale = localStorage.getItem("audio")||1;
 
 animateHero();
 
@@ -641,9 +641,9 @@ function moveBugs(){
             let newLeft = parseInt(fireAnt.style.left) + speed * Math.cos(angle) + "px";
             fireAnt.style.top = newTop;
             fireAnt.style.left = newLeft;
+            let rotate = fireAnt.style.transform
             for(let j = smallList[i].length - 2; j > -1; j--) {
                 let elem = smallList[i][j];
-                let rotate = smallList[i][j + 1].style.transform
                 setTimeout(()=> {
                     elem.style.top = newTop;
                     elem.style.left = newLeft;
