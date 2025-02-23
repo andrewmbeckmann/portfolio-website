@@ -20,7 +20,7 @@ let playerSize = 16;
 let playerX = playerY = hitsTaken = 0;
 let goingUp = goingDown = goingLeft = goingRight = false;
 let tutorialText = "Move your character with WASD.  Attack with your L key.  Go!"
-const setWaves = ["0000", "0001", "11011", "11121", "12001001" , "112112121" , "211211111", "12301301" , "312012011" , "333000333", "012344321" , "442213131313", "433321111" , "3232441111" , "41414141121111211", "414141413331143313411134244111111431333334431114411113221211"]; //will make a text parser for this soon, what a win for mutable arrays lol
+const setWaves = ["0000", "0001", "11011", "11121", "12001001" , "112112121" , "211211111", "12301301" , "312012011" , "333000333", "012344321" , "442213131313", "433321111" , "3232441111" , "41414141121111211", "414141413331143313411134244111111431333334431114411113221211", "4422222243411113311314344411010111331333011301111", "13242134213421341234213413242134432134213421", "2214141112233322220000020202020202011142342342222", "00444444444444444444444444400000000000000", "342424242333323232344442323232323232323232333333", "4242111111424242424242113111113111311311111113111311113111111", "444222222222231313000000020000000002000000000200000000", "410410101224224220202000440000001123423141234141111", "4141413333434333433411104004040004000020003132323223322234400400311142341111111113221211"]; //will make a text parser for this soon, what a win for mutable arrays lol
 let waves = structuredClone(setWaves);
 let waveStart = 3;
 let paused = endScreen = endCool =  dead = powerSelection = false;
@@ -70,7 +70,7 @@ window.addEventListener("keyup", e => {
     let key = e.key.toLowerCase();
     let currentKeyTime = Date.now();
 
-    if (key === "escape" && paused) {
+    if (key === "escape" && paused && powerselection == false) {
         e.preventDefault();
         unPause();
         if(e.altKey) endGame();
@@ -479,6 +479,7 @@ function unPause(){
     document.getElementById("score").style.zIndex = "1000"
     document.getElementById("splash").style.opacity = ".7"
     document.getElementById("pausetext").remove();
+    powerselection = false;
     if(document.getElementById("powerup")) document.getElementById("powerup").remove();
     displayVolumeSlider(false)
     setTimeout(() => {
