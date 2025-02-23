@@ -518,6 +518,10 @@ body.light button{
     z-index: 2001;
 }
 
+#sword {
+    image-rendering: pixelated;
+}
+
 .swordright {
     transform: scaleX(-1);
 }
@@ -532,4 +536,54 @@ body.light button{
 
 .sworddown {
     transform: scaleX(-1) rotate(270deg);
+}
+
+#powerups{
+    display: flex;
+    width: 100%;
+    height: 100px;
+    gap: 10px;
+    justify-content: center;
+    align-items: center;
+    flex-direction: row;
+    position: fixed;
+    bottom: 50px;
+    z-index: 2001;
+}
+
+.powerup{
+    image-rendering: pixelated;
+    height: 100px;
+    width: 100px;
+    overflow:visible;
+    background-size: cover;
+}
+
+.powerupkids{
+    height: inherit;
+    margin: 0;
+    padding: 0;
+    width: inherit;
+    z-index: 2002;
+}
+
+.powerupkids:hover::after{    
+    display: block;
+    font-family: "Pixelify Sans", serif;
+    position: relative;
+    content:attr(data-title);
+    left:0;
+    font-size: larger;
+    bottom: 40px;
+    width:200px;
+    white-space: nowrap;
+    height:2rem;
+    background-color: black;
+    color: white;
+    z-index: 2001;
+}
+
+
+.vampiresword {
+    filter: hue-rotate(90deg)
 }

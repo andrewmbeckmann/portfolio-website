@@ -13,18 +13,22 @@ let swordScore = 100; //allowing for gains with upgrades (also yes more items co
 let score = killScore = totalHit = 0;
 let wave = audioScale = savedVolume = 1;
 let movementIncrement = 3;
+let movementMultiplier = 1;
 let slowFrames = swordFrames = holdFrames = 0;
 let bugMovement = 2;
 let playerSize = 16;
 let playerX = playerY = hitsTaken = 0;
 let goingUp = goingDown = goingLeft = goingRight = false;
 let tutorialText = "Move your character with WASD.  Attack with your L key.  Go!"
-const setWaves = ["0000", "0001", "11011", "11121", "12001001" , "112112121" , "211211111", "12301301" , "312012011" , "333000333", "012344321" , "442213131313", "433321111" , "3232441111" , "41414141121111211"]; //will make a text parser for this soon, what a win for mutable arrays lol
+const setWaves = ["0000", "0001", "11011", "11121", "12001001" , "112112121" , "211211111", "12301301" , "312012011" , "333000333", "012344321" , "442213131313", "433321111" , "3232441111" , "41414141121111211", "414141413331143313411134244111111431333334431114411113221211"]; //will make a text parser for this soon, what a win for mutable arrays lol
 let waves = structuredClone(setWaves);
-let paused = endScreen = endCool = powerSword = dead = false;
+let waveStart = 3;
+let paused = endScreen = endCool =  dead = powerSelection = false;
 let webArray = [];
 let waterArray = [];
 let fireArray = [];
+let bigSword = vampireSword = powerSword = false;
+let selectedPowers = []
 
 if (!localStorage.getItem("highscore")) localStorage.setItem("highscore", "0")
 audioScale = localStorage.getItem("audio")||1;
@@ -331,7 +335,10 @@ function tutorialSplash(){
 }
 
 function createGame(){
-    if(localStorage.getItem("savewave")) wave = Number(localStorage.getItem("savewave")) 
+    if(localStorage.getItem("savewave")) wave = Number(localStorage.getItem("savewave"))
+    if(localStorage.getItem("maxlives")) maxLives = Number(localStorage.getItem("maxlives"))
+    if(localStorage.getItem("powers")) selectedPowers = localStorage.getItem("powers").split(",")
+    loadPowerUps();
     score = Number(localStorage.getItem("savescore")) //gonna make this an option
     window.scrollTo({top: 0, behavior: "instant"})
     gameStarted = true;
@@ -360,7 +367,7 @@ function createGame(){
     displayScore();
     displayWave();
 
-    processWave(3, false);
+    processWave(waveStart + Math.floor(wave/5), false);
 
     elem = document.createElement("img");
     elem.setAttribute("src", "images/swordbase.png");
@@ -405,6 +412,10 @@ function endGame() {
     document.getElementById("sword").remove();
     goingUp = goingDown = goingLeft = goingRight = false;
     resetWaves();
+    selectedPowers = [];
+    localStorage.setItem("powers", "");
+    localStorage.setItem("maxlives", "3");
+    resetPowers();
     setTimeout(() => { //helps with late regs
         hitsTaken = 0;
     }, 1000)
@@ -447,11 +458,16 @@ function displayPauseScreen(){ //handles end as well
             elem3.style.left = (window.innerWidth / 2) - (elem3.offsetWidth / 2) + "px";
         }, 1000) //need to be dead for 1 sec to restart
     } else {
-        let elem2 = document.createElement("p");
-        elem2.textContent = "(or hold esc to exit)";
-        elem.appendChild(elem2)
-        elem2.style.position = "relative";
-        elem2.style.marginTop = playerSize + "px";
+        if(powerSelection) {
+            elem.textContent = "Select a power-up to proceed."
+            displayPowerUps();
+        } else {
+            let elem2 = document.createElement("p");
+            elem2.textContent = "(or hold esc to exit)";
+            elem.appendChild(elem2)
+            elem2.style.position = "relative";
+            elem2.style.marginTop = playerSize + "px";
+        }
     }
     elem.style.left = (window.innerWidth / 2) - (elem.offsetWidth / 2) + "px";
     paused = true;
@@ -463,6 +479,7 @@ function unPause(){
     document.getElementById("score").style.zIndex = "1000"
     document.getElementById("splash").style.opacity = ".7"
     document.getElementById("pausetext").remove();
+    if(document.getElementById("powerup")) document.getElementById("powerup").remove();
     displayVolumeSlider(false)
     setTimeout(() => {
         paused = false;
@@ -523,6 +540,11 @@ function resetWaves(){
     wave = 1;
 }
 
+function resetPowers(){
+    movementMultiplier = 1;
+    powerSword = bigSword = vampireSword = false;
+}
+
 function bugSpray(className) { //needed more iterations, potential bug with movement interfering w/deletion
     let bugList = document.getElementsByClassName(className);
     for(let i = 0; i < 5; i++){
@@ -538,7 +560,7 @@ function runGame(){
         function gameLogic() {
             if (paused) return;
             moveBugs()
-            if (slowFrames-- < 0) movementIncrement = Math.trunc(window.innerWidth * .006); 
+            if (slowFrames-- < 0) movementIncrement = Math.trunc(window.innerWidth * .006) * movementMultiplier; 
             if (goingUp) movePlayer(0, -movementIncrement);
             if (goingDown) movePlayer(0, movementIncrement);
             if (goingLeft) movePlayer(-movementIncrement, 0);
@@ -659,7 +681,7 @@ function moveBugs(){
         moveSwordPower(swordPower);
         checkSwordPowerCollision();
         setTimeout(() => {
-            if(!paused) moveSwordPower(swordPower); //fillframe, not checkin coll
+            if(!paused && totalHit < 1) moveSwordPower(swordPower); //fillframe, not checkin coll
         }, frameTime/2)
         if(swordFrames == 1) setTimeout(() => {
             swordPower.remove();
@@ -669,10 +691,12 @@ function moveBugs(){
 }
 
 function moveSwordPower(s){
-    if (s.classList.contains("swordright"))  s.style.left = parseInt(s.style.left) + playerSize/2 + "px" ;
-    else if (s.classList.contains("swordup"))  s.style.top = parseInt(s.style.top) - playerSize/2 + "px" ;
-    else if (s.classList.contains("sworddown"))  s.style.top = parseInt(s.style.top) + playerSize/2 + "px" ;
-    else s.style.left = parseInt(s.style.left) - playerSize/2 + "px" ;
+    let movement = playerSize/2 * movementMultiplier;
+    if(bigSword) movement *= 2;
+    if (s.classList.contains("swordright"))  s.style.left = parseInt(s.style.left) + movement + "px" ;
+    else if (s.classList.contains("swordup"))  s.style.top = parseInt(s.style.top) - movement + "px" ;
+    else if (s.classList.contains("sworddown"))  s.style.top = parseInt(s.style.top) + movement + "px" ;
+    else s.style.left = parseInt(s.style.left) - movement + "px" ;
 }
 
 function adjustSpriteSize(){
@@ -693,31 +717,46 @@ function updateSwordPos(){
     if(goingRight){
         elem.classList.remove(...elem.classList);
         elem.classList.add("swordright");
-        elem.style.left = playerX+ playerSize + "px";
+        elem.style.left = playerX+ playerSize*(1.4**(movementMultiplier-1)) + "px";
         elem.style.top = playerY + "px";
     } else if(goingLeft){ //left + right first makes it so left / right graphics are prioritized in diagonals 
         elem.classList.remove(...elem.classList);
         elem.classList.add("swordleft");
-        elem.style.left = playerX - playerSize + "px";
+        elem.style.left = playerX - playerSize*(1.4**(movementMultiplier-1)) + "px";
+        if(bigSword) {
+            elem.style.left = playerX - 3 * playerSize + "px"
+        }
         elem.style.top = playerY + "px";
     } else if(goingUp){
         elem.classList.remove(...elem.classList);
         elem.classList.add("swordup");
         elem.style.left = playerX + "px";
-        elem.style.top = playerY - playerSize + "px";
+        elem.style.top = playerY - playerSize*(1.4**(movementMultiplier-1)) + "px";
+        if(bigSword) {
+            elem.style.left = playerX - playerSize + "px";
+            elem.style.top = playerY - playerSize * 2 + "px";
+        } 
     } else if (goingDown){
         elem.classList.remove(...elem.classList);
         elem.classList.add("sworddown");
         elem.style.left = playerX + "px";
-        elem.style.top = playerY + playerSize + "px";
+        elem.style.top = playerY + playerSize*(1.4**(movementMultiplier-1)) + "px";
+        if(bigSword) {
+            elem.style.left = playerX - playerSize + "px";
+            elem.style.top = playerY + playerSize * 2 + "px";
+        } 
     } 
-
+    if(vampireSword) elem.classList.add("vampiresword")
 }
 
 function swingSword(){
     let currentSwingTime = Date.now();
     if (currentSwingTime - lastSwingTime < swingCooldown || paused) return;
     let elem = document.getElementById("sword")
+    if(bigSword) {
+        elem.width = playerSize*3;
+        elem.height = playerSize*2;
+    }
     totalHit = 0;
     randomAudioPitch("audio/swordswing.mp3")
 
@@ -731,6 +770,7 @@ function swingSword(){
     setTimeout(() => {
         elem.setAttribute("src", "images/swordbase.png")
         checkSwordCollision();
+        if(totalHit > 0 && vampireSword) {if(hitsTaken > 0) {hitsTaken--; displayHealth()}};
         killScore = totalHit * 100;
         if(totalHit > 1){
             killScore *= (1.25 ** totalHit)
@@ -796,6 +836,11 @@ function checkSwordCollision(){
     }
 }
 
+function activateVampireSword(){
+    vampireSword = true;    
+    document.getElementById("sword").classList.add("vampiresword")
+}
+
 function checkSwordPowerCollision(){
     let bugList = document.getElementsByClassName("bug");
     let sword = document.getElementById("swordpower");
@@ -829,6 +874,14 @@ function checkSwordPowerCollision(){
             standardHit(bugList[i])
         }
     }
+
+    bugList = document.getElementsByClassName("fireant");
+    for(let i = 0; i < bugList.length; i++) {
+        if (doElsCollide(bugList[i], sword)) {
+            standardHit(bugList[i])
+        }
+    }
+
     if(totalHit > 0) swordFrames = 1;
 }
 
@@ -983,6 +1036,8 @@ function fireSwordPower(){
     elem.style.zIndex = "1000"
     elem.src = "images/powerframes/swordpower4.png";
     elem.style.width = playerSize + "px";
+    if(bigSword) elem.style.width = playerSize * 3 + "px";
+    elem.style.imageRendering = "pixelated";
     if(sword.classList.contains("swordright")) elem.classList.add("swordright")
     else if(sword.classList.contains("swordup")) elem.classList.add("swordup")
     else if(sword.classList.contains("sworddown")) elem.classList.add("sworddown")
@@ -1116,8 +1171,11 @@ function displayCombo(combo, weapon){ //need to handle multiple combos, fade old
     elem.textContent = "+" + combo + "x " + weapon + " Combo!"
     if(weapon === "heart") elem.textContent = "Extra Heart Bonus!"
     if(weapon === "gameover") elem.textContent = "LAST WAVE CLEARED"
-    if(document.getElementsByClassName("scoreElem") && document.getElementsByClassName("scoreElem").length > 0 ){
-        let scoreElems = document.getElementsByClassName("scoreElem");
+    elem.classList.add("scoreelem")
+    elem.classList.add("comboelem")
+    if(document.getElementsByClassName("comboelem") && document.getElementsByClassName("comboelem").length > 0 ){
+        let scoreElems = document.getElementsByClassName("comboelem");
+        console.log(scoreElems)
         if (scoreElems.length > 2) {
             elem.style.marginTop = "230px"
             scoreElems[1].style.marginTop = "130px"
@@ -1129,12 +1187,92 @@ function displayCombo(combo, weapon){ //need to handle multiple combos, fade old
             elem.style.marginTop = "180px"
         }
     } 
-    elem.classList.add("scoreelem")
     document.body.append(elem)
     elem.style.transition = "3s"
     setTimeout(() => {
         elem.remove();
     }, 3000) 
+}
+
+function displayPowerUps(){
+    if(document.getElementById("powerups")) document.getElementById("powerups").remove();
+    let availablePowerUps = getAvailablePowerups();
+    let elem = document.createElement("div")
+    elem.id = "powerups"
+    elem.style.height = playerSize*3 + "pix";
+    for(let i = 0; i < availablePowerUps.length; i++){
+        let elem2 = document.createElement("p")
+        let powerUpName = availablePowerUps[i];
+        elem2.style.backgroundImage = "url(\"images/powerups/" + powerUpName + ".png\")"
+        elem2.classList.add("powerup")
+        elem2.style.width = window.innerWidth*.1 + "pix";
+        elem2.style.height = window.innerWidth*.1 + "pix";
+        let elem3 = document.createElement("p")
+        elem3.setAttribute("data-title", getPowerHint(availablePowerUps[i]));
+        elem3.id = powerUpName;
+        elem3.classList.add("powerupkids")
+        elem2.appendChild(elem3.cloneNode(true))
+        elem.appendChild(elem2.cloneNode(true))
+    }
+    document.body.append(elem)
+    let allPowerUpButtons = document.getElementsByClassName("powerupkids");
+    for (let i = 0; i < allPowerUpButtons.length; i++){
+        allPowerUpButtons[i].addEventListener("click", () => {
+            let powerUpName = allPowerUpButtons[i].id;
+            selectedPowers.push(powerUpName)
+            applyPowerUp(powerUpName);
+            localStorage.setItem("powers", selectedPowers.toString())
+            unPause();
+            document.getElementById("powerups").remove();  
+            processWave(waveStart + Math.floor(wave/5), false);
+        })
+    }
+}
+
+function getAvailablePowerups(){
+    let allPowerUps = ["speed", "vampire", "bigsword", "blastpower"]
+    for(let i = allPowerUps.length - 1; i > -1; i--){
+        console.log(allPowerUps);
+        if(selectedPowers.indexOf(allPowerUps[i]) != -1) allPowerUps.splice(i, 1);
+        console.log(allPowerUps);
+    }
+    return structuredClone(allPowerUps); //temp solution, not random yet. will eventually be random 3 of much larger amount of powerups.
+}
+
+function loadPowerUps(){
+    for(let i = 0; i < selectedPowers.length; i++){
+        applyPowerUp(selectedPowers[i])
+    }
+}
+
+function getPowerHint(powerUp){
+    switch (powerUp){
+        case "bigsword":
+            return "Gives you a big sword"
+        case "vampire":
+            return "Gives your sword vampire powers (steal health!)"
+        case "speed":
+            return "Makes you quite a bit faster"
+        case "blastpower":
+            return "Gives sword swings an extra projectile"
+    }
+}
+
+function applyPowerUp(powerUp){
+    switch (powerUp){
+        case "bigsword":
+            bigSword = true;
+            return;
+        case "vampire":
+            activateVampireSword();
+            return;
+        case "speed":
+            movementMultiplier = 2;
+            return;
+        case "blastpower":
+            powerSword = true;
+            return;
+    }
 }
 
 function spawnHeart(){
@@ -1160,6 +1298,7 @@ function processHeart() {
     }
     if(maxLives < 5){
         maxLives++;
+        localStorage.setItem("maxlives", maxLives)
         displayHealth();
         return;
     }
@@ -1169,8 +1308,10 @@ function processHeart() {
 }
 
 function processWave(num, isPostAttack){
-    if(waves[wave-1].length == 0 && waves.length == wave) {
+    if(waves[wave-1].length == 0 && waves.length == wave && document.getElementsByClassName("enemy").length == 0) {
         displayCombo(1, "gameover")
+        endScreen = true;
+        displayPauseScreen()
         return;
     }
     for(let i = 0; i < num; i++){
@@ -1179,16 +1320,16 @@ function processWave(num, isPostAttack){
         spawnNewBug(Number(char))
         waves[wave - 1] = waves[wave - 1].substring(1);
     } 
-    // if(waves[wave-1].length == 0 && waves.length == wave && document.getElementsByClassName("enemy").length == 0 && !document.getElementById("heart")) {
-    //     displayCombo(1, "gameover")
-    //     endGame();
-    //     return;
-    // }
     if (isPostAttack && waves[wave - 1].length == 0 && document.getElementsByClassName("enemy").length == 0 && !endScreen) {
         wave++;
         localStorage.setItem("savewave", wave);
         localStorage.setItem("savescore", score);
-        processWave(3, false);
+        if((wave - 1) % 5 == 0){
+            powerSelection = true;
+            displayPauseScreen();
+            return;
+        }
+        processWave(waveStart + Math.floor(wave/5), false);
     };
     displayWave();
 }
